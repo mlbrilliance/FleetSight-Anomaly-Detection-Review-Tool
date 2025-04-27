@@ -1,0 +1,126 @@
+@prefix :      <http://example.org/fleetsight#> .
+@prefix fs:    <http://example.org/fleetsight#> .
+@prefix owl:   <http://www.w3.org/2002/07/owl#> .
+@prefix rdf:   <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs:  <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd:   <http://www.w3.org/2001/XMLSchema#> .
+@prefix geo:   <http://www.w3.org/2003/01/geo/wgs84_pos#> . # Import standard WGS84 vocab
+@prefix sf:    <http://www.opengis.net/ont/sf#> .      # Simple Features vocabulary if needed for geometry types
+@prefix core:  <http://example.org/fleetsight-core-entities#> .
+
+# Ontology Declaration
+<http://example.org/fleetsight-geo>
+    rdf:type owl:Ontology ;
+    owl:imports <http://www.w3.org/2003/01/geo/wgs84_pos#>,
+                <http://example.org/fleetsight-core-entities> ;
+    rdfs:label "FleetSight Geographic Ontology" ;
+    rdfs:comment "Defines geographic features, locations, routes, and regions relevant to fleet operations." .
+
+# --- Classes ---
+
+fs:GeographicFeature
+    rdf:type owl:Class ;
+    rdfs:label "Geographic Feature" ;
+    rdfs:comment "An abstract class for anything with a spatial location or extent." .
+
+fs:PointLocation # Representing a specific point using WGS84
+    rdf:type owl:Class ;
+    rdfs:subClassOf fs:GeographicFeature, geo:Point .
+
+fs:GeographicRegion
+    rdf:type owl:Class ;
+    rdfs:subClassOf fs:GeographicFeature ;
+    rdfs:label "Geographic Region" ;
+    rdfs:comment "A defined area or territory with a boundary.".
+fs:SalesTerritory rdf:type owl:Class ; rdfs:subClassOf fs:GeographicRegion ; rdfs:label "Sales Territory".
+fs:ServiceArea rdf:type owl:Class ; rdfs:subClassOf fs:GeographicRegion ; rdfs:label "Service Area".
+fs:RestrictedZone rdf:type owl:Class ; rdfs:subClassOf fs:GeographicRegion ; rdfs:label "Restricted Zone".
+
+fs:Route
+    rdf:type owl:Class ;
+    rdfs:subClassOf fs:GeographicFeature ;
+    rdfs:label "Route" ;
+    rdfs:comment "A defined path or sequence of locations.".
+fs:PlannedRoute rdf:type owl:Class ; rdfs:subClassOf fs:Route ; rdfs:label "Planned Route".
+fs:ActualPath rdf:type owl:Class ; rdfs:subClassOf fs:Route ; rdfs:label "Actual Path" ; rdfs:comment "Recorded path taken by a vehicle.".
+
+fs:PointOfInterest
+    rdf:type owl:Class ;
+    rdfs:subClassOf fs:PointLocation ; # POIs are specific points
+    rdfs:label "Point Of Interest" ;
+    rdfs:comment "A specific location of significance.".
+fs:HomeBasePOI rdf:type owl:Class ; rdfs:subClassOf fs:PointOfInterest ; rdfs:label "Home Base POI".
+fs:FuelDepotPOI rdf:type owl:Class ; rdfs:subClassOf fs:PointOfInterest ; rdfs:label "Fuel Depot POI".
+fs:MaintenanceHubPOI rdf:type owl:Class ; rdfs:subClassOf fs:PointOfInterest ; rdfs:label "Maintenance Hub POI".
+fs:ClientSitePOI rdf:type owl:Class ; rdfs:subClassOf fs:PointOfInterest ; rdfs:label "Client Site POI".
+fs:KnownFuelStationPOI rdf:type owl:Class ; rdfs:subClassOf fs:PointOfInterest ; rdfs:label "Known Fuel Station POI".
+
+fs:Geofence
+    rdf:type owl:Class ;
+    rdfs:subClassOf fs:GeographicRegion ; # Geofence defines a region boundary
+    rdfs:label "Geofence" ;
+    rdfs:comment "A virtual perimeter for a real-world geographic area.".
+
+fs:GeometricShape # To represent boundaries / routes if needed abstractly
+    rdf:type owl:Class .
+fs:PolygonShape
+    rdf:type owl:Class ; rdfs:subClassOf fs:GeometricShape, sf:Polygon ; rdfs:label "Polygon Shape". # Reuse standard if suitable
+fs:LineStringShape
+    rdf:type owl:Class ; rdfs:subClassOf fs:GeometricShape, sf:LineString ; rdfs:label "LineString Shape". # Reuse standard if suitable
+
+# --- Data Properties ---
+
+# Inherit geo:lat, geo:long for PointLocation
+
+fs:regionName rdf:type owl:DatatypeProperty ; rdfs:domain fs:GeographicRegion ; rdfs:range xsd:string ; rdfs:label "Region Name".
+fs:routeName rdf:type owl:DatatypeProperty ; rdfs:domain fs:Route ; rdfs:range xsd:string ; rdfs:label "Route Name".
+fs:poiName rdf:type owl:DatatypeProperty ; rdfs:domain fs:PointOfInterest ; rdfs:range xsd:string ; rdfs:label "POI Name".
+fs:poiCategory rdf:type owl:DatatypeProperty ; rdfs:domain fs:PointOfInterest ; rdfs:range xsd:string ; rdfs:label "POI Category" ; rdfs:comment "e.g., 'Fuel', 'Maintenance', 'Office', 'Client'".
+
+fs:geofenceID rdf:type owl:DatatypeProperty ; rdfs:domain fs:Geofence ; rdfs:range xsd:string ; rdfs:label "Geofence ID".
+fs:geofenceType rdf:type owl:DatatypeProperty ; rdfs:domain fs:Geofence ; rdfs:label "Geofence Type" ; rdfs:range [ rdf:type rdfs:Datatype ; owl:oneOf ("Inclusion" "Exclusion") ].
+
+# For storing geometry definitions - implementation detail in the data property value
+fs:geometryDefinitionWKT rdf:type owl:DatatypeProperty ; rdfs:domain fs:GeometricShape ; rdfs:range xsd:string ; rdfs:label "Geometry Definition (WKT)"; rdfs:comment "Well-Known Text representation of the shape.".
+fs:geometryDefinitionGeoJSON rdf:type owl:DatatypeProperty ; rdfs:domain fs:GeometricShape ; rdfs:range xsd:string ; rdfs:label "Geometry Definition (GeoJSON)"; rdfs:comment "GeoJSON representation of the shape.".
+
+fs:routeNominalDistance rdf:type owl:DatatypeProperty ; rdfs:domain fs:Route ; rdfs:range xsd:decimal ; rdfs:label "Route Nominal Distance".
+fs:routeDistanceUnit rdf:type owl:DatatypeProperty ; rdfs:domain fs:Route ; rdfs:range xsd:string ; rdfs:label "Route Distance Unit" ; rdfs:comment "'km', 'mile'".
+fs:routeNominalDuration rdf:type owl:DatatypeProperty ; rdfs:domain fs:Route ; rdfs:range xsd:duration ; rdfs:label "Route Nominal Duration".
+
+# --- Object Properties ---
+
+fs:hasGeometry # Links a geographic feature to its shape definition
+    rdf:type owl:ObjectProperty ; rdfs:domain fs:GeographicFeature ; rdfs:range fs:GeometricShape ; rdfs:label "Has Geometry".
+
+fs:definesBoundaryOf
+    rdf:type owl:ObjectProperty ; rdfs:domain fs:PolygonShape ; rdfs:range fs:GeographicRegion ; rdfs:label "Defines Boundary Of".
+fs:representsPathOf
+    rdf:type owl:ObjectProperty ; rdfs:domain fs:LineStringShape ; rdfs:range fs:Route ; rdfs:label "Represents Path Of".
+
+# Relationships between transactions/vehicles and geographic features
+fs:occursWithin # Transaction/Vehicle state within a region
+    rdf:type owl:ObjectProperty ; rdfs:domain owl:Thing ; rdfs:range fs:GeographicRegion ; rdfs:label "Occurs Within / Located Within" . # Use owl:Thing to apply to both Transactions and instantaneous Vehicle locations.
+core:transactionOccursWithin
+    rdf:type owl:ObjectProperty ; rdfs:subPropertyOf fs:occursWithin ; rdfs:domain core:FleetTransaction ; rdfs:range fs:GeographicRegion .
+fs:vehicleCurrentlyWithin
+    rdf:type owl:ObjectProperty ; rdfs:subPropertyOf fs:occursWithin ; rdfs:domain core:Vehicle ; rdfs:range fs:GeographicRegion .
+
+fs:locationNearPOI # Use distance calculation externally
+    rdf:type owl:ObjectProperty ; rdfs:domain fs:PointLocation ; rdfs:range fs:PointOfInterest ; rdfs:label "Location Near POI".
+core:transactionNearPOI
+    rdf:type owl:ObjectProperty ; rdfs:subPropertyOf fs:locationNearPOI ; rdfs:domain core:FleetTransaction ; rdfs:range fs:PointOfInterest .
+
+fs:violatesGeofence
+    rdf:type owl:ObjectProperty ; rdfs:domain owl:Thing ; rdfs:range fs:Geofence ; rdfs:label "Violates Geofence" ; rdfs:comment "Indicates crossing into an exclusion zone or out of an inclusion zone.".
+core:transactionViolatesGeofence
+    rdf:type owl:ObjectProperty ; rdfs:subPropertyOf fs:violatesGeofence ; rdfs:domain core:FleetTransaction ; rdfs:range fs:Geofence .
+
+fs:deviatesFromPlannedRoute
+    rdf:type owl:ObjectProperty ; rdfs:domain core:FleetTransaction ; # Or perhaps fs:ActualPath? Depends on modeling detail
+    rdfs:range fs:PlannedRoute ;
+    rdfs:label "Deviates From Planned Route".
+
+fs:routeStartsAt rdf:type owl:ObjectProperty ; rdfs:domain fs:Route ; rdfs:range fs:PointOfInterest ; rdfs:label "Route Starts At".
+fs:routeEndsAt rdf:type owl:ObjectProperty ; rdfs:domain fs:Route ; rdfs:range fs:PointOfInterest ; rdfs:label "Route Ends At".
+fs:routeIncludesWaypoint rdf:type owl:ObjectProperty ; rdfs:domain fs:Route ; rdfs:range fs:PointOfInterest ; rdfs:label "Route Includes Waypoint".

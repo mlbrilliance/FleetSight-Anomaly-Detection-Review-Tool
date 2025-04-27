@@ -1,0 +1,1377 @@
+##### owl/fleetsight-anomaly.ttl #####
+@prefix :      <http://example.org/fleetsight#> .
+@prefix fs:    <http://example.org/fleetsight#> .
+@prefix owl:   <http://www.w3.org/2002/07/owl#> .
+@prefix rdf:   <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs:  <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd:   <http://www.w3.org/2001/XMLSchema#> .
+@prefix core:  <http://example.org/fleetsight-core-entities#> . # Alias for core
+
+# Ontology Declaration
+<http://example.org/fleetsight-anomaly>
+    rdf:type owl:Ontology ;
+    owl:imports <http://example.org/fleetsight-core-entities> ; # Import core types
+    rdfs:label "FleetSight Anomaly Ontology" ;
+    rdfs:comment "Defines concepts related to transaction anomalies and the feedback process." .
+
+# --- Classes ---
+
+fs:Alert
+    rdf:type owl:Class ;
+    rdfs:label "Alert" ;
+    rdfs:comment "A general class representing any system-generated notification requiring attention." .
+
+fs:TransactionAnomaly
+    rdf:type owl:Class ;
+    rdfs:subClassOf fs:Alert ;
+    rdfs:label "Transaction Anomaly" ;
+    rdfs:comment "A specific type of Alert indicating a potentially suspicious or unusual Fleet Transaction." .
+
+# Specific Anomaly Types (based on project description)
+fs:HighSpendAnomaly
+    rdf:type owl:Class ;
+    rdfs:subClassOf fs:TransactionAnomaly ;
+    rdfs:label "High Spend Anomaly" ;
+    rdfs:comment "Anomaly flagged due to significantly higher transaction amount compared to norms." .
+
+fs:LocationAnomaly
+    rdf:type owl:Class ;
+    rdfs:subClassOf fs:TransactionAnomaly ;
+    rdfs:label "Location Anomaly" ;
+    rdfs:comment "Anomaly flagged due to transaction location being unusual or far from expected routes/areas." .
+
+fs:FrequencyAnomaly
+    rdf:type owl:Class ;
+    rdfs:subClassOf fs:TransactionAnomaly ;
+    rdfs:label "Frequency Anomaly" ;
+    rdfs:comment "Anomaly flagged due to unusual frequency of transactions (e.g., too many fuel stops in short period)." .
+
+fs:TimeOfDayAnomaly
+    rdf:type owl:Class ;
+    rdfs:subClassOf fs:TransactionAnomaly ;
+    rdfs:label "Time Of Day Anomaly" ;
+    rdfs:comment "Anomaly flagged due to transaction occurring at an unusual time (e.g., late night fuel purchase)." .
+
+fs:FuelMetricAnomaly # Example if fuel metrics are considered
+    rdf:type owl:Class ;
+    rdfs:subClassOf fs:TransactionAnomaly ;
+    rdfs:label "Fuel Metric Anomaly" ;
+    rdfs:comment "Anomaly flagged due to impossible/unlikely fuel volume vs tank capacity or distance driven." .
+
+# Add other anomaly types as ML models evolve
+
+# Separate class for feedback to allow multiple feedback events potentially? No, keep simple for now. Attach to Anomaly.
+
+# --- Data Properties ---
+
+fs:anomalyID
+    rdf:type owl:DatatypeProperty ;
+    rdfs:label "Anomaly ID" ;
+    rdfs:comment "Unique identifier for a specific anomaly instance." ;
+    rdfs:domain fs:TransactionAnomaly ;
+    rdfs:range xsd:string .
+
+fs:isFlagged # Already defined implicitly by existence of an Anomaly instance relating to a Transaction
+
+fs:anomalyDetectionTimestamp
+    rdf:type owl:DatatypeProperty ;
+    rdfs:label "Anomaly Detection Timestamp" ;
+    rdfs:comment "Timestamp when the anomaly was first detected by the system." ;
+    rdfs:domain fs:TransactionAnomaly ;
+    rdfs:range xsd:dateTime .
+
+fs:anomalyReason
+    rdf:type owl:DatatypeProperty ;
+    rdfs:label "Anomaly Reason" ;
+    rdfs:comment "A human-readable string explaining why this transaction was flagged." ;
+    rdfs:domain fs:TransactionAnomaly ;
+    rdfs:range xsd:string .
+
+fs:anomalyScore # Optional depending on ML model
+    rdf:type owl:DatatypeProperty ;
+    rdfs:label "Anomaly Score" ;
+    rdfs:comment "A numerical score indicating the degree of anomalousness (model-dependent)." ;
+    rdfs:domain fs:TransactionAnomaly ;
+    rdfs:range xsd:float . # float is more common for ML scores than decimal
+
+fs:feedbackStatus
+    rdf:type owl:DatatypeProperty ;
+    rdfs:label "Feedback Status" ;
+    rdfs:comment "The status assigned by a fleet manager during review." ;
+    rdfs:domain fs:TransactionAnomaly ;
+    rdfs:range [
+        rdf:type rdfs:Datatype ;
+        owl:oneOf ( "Pending Review" "Okay" "Investigate" "Confirmed Fraud/Misuse" "Miscategorized" ) # Defined explicit values
+    ] ;
+    # Default value could potentially be set using SHACL or rules later
+    rdfs:comment "Initially 'Pending Review'." .
+
+fs:feedbackTimestamp
+    rdf:type owl:DatatypeProperty ;
+    rdfs:label "Feedback Timestamp" ;
+    rdfs:comment "Timestamp when the feedback was submitted." ;
+    rdfs:domain fs:TransactionAnomaly ;
+    rdfs:range xsd:dateTime .
+
+fs:feedbackNotes # Optional field for manager comments
+    rdf:type owl:DatatypeProperty ;
+    rdfs:label "Feedback Notes" ;
+    rdfs:comment "Optional textual notes provided by the reviewer." ;
+    rdfs:domain fs:TransactionAnomaly ;
+    rdfs:range xsd:string .
+
+fs:correctedGLCode # Optional field if re-categorization feedback exists
+    rdf:type owl:DatatypeProperty ;
+    rdfs:label "Corrected GL Code" ;
+    rdfs:comment "General Ledger code suggested by reviewer if transaction was miscategorized." ;
+    rdfs:domain fs:TransactionAnomaly ;
+    rdfs:range xsd:string .
+
+# --- Object Properties ---
+
+fs:anomalyRelatesToTransaction
+    rdf:type owl:ObjectProperty ;
+    rdfs:label "Anomaly Relates To Transaction" ;
+    rdfs:comment "Connects an anomaly instance to the specific transaction it flags." ;
+    rdfs:domain fs:TransactionAnomaly ;
+    rdfs:range core:FleetTransaction ; # Use prefix for imported ontology
+    owl:inverseOf core:transactionHasAnomaly ; # Define inverse in core? Better here. Let's add it here, assuming we can define inverse props pointing to other namespaces.
+    # This should probably be a functional property from the Anomaly side (one anomaly instance flags exactly one transaction)
+    rdf:type owl:FunctionalProperty .
+
+core:transactionHasAnomaly # Defined here to establish the inverse link clearly
+    rdf:type owl:ObjectProperty ;
+    rdfs:label "Transaction Has Anomaly" ;
+    rdfs:domain core:FleetTransaction ;
+    rdfs:range fs:TransactionAnomaly ;
+    owl:inverseOf fs:anomalyRelatesToTransaction . # Explicit inverse
+
+# Connection to users defined in fleetsight-users.ttl via fs:reviewedByManager
+##### owl/fleetsight-core-entities.ttl #####
+@prefix :      <http://example.org/fleetsight#> .
+@prefix fs:    <http://example.org/fleetsight#> .
+@prefix owl:   <http://www.w3.org/2002/07/owl#> .
+@prefix rdf:   <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs:  <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd:   <http://www.w3.org/2001/XMLSchema#> .
+
+# Ontology Declaration
+<http://example.org/fleetsight-core-entities>
+    rdf:type owl:Ontology ;
+    rdfs:label "FleetSight Core Entities Ontology" ;
+    rdfs:comment "Defines the core real-world entities involved in fleet operations: Transactions, Vehicles, Drivers." .
+
+# --- Classes ---
+
+fs:FleetTransaction
+    rdf:type owl:Class ;
+    rdfs:label "Fleet Transaction" ;
+    rdfs:comment "Represents any recorded financial or operational event related to a fleet vehicle or driver." .
+
+fs:FuelTransaction
+    rdf:type owl:Class ;
+    rdfs:subClassOf fs:FleetTransaction ;
+    rdfs:label "Fuel Transaction" ;
+    rdfs:comment "A specific type of Fleet Transaction representing the purchase of fuel." .
+
+fs:MaintenanceTransaction
+    rdf:type owl:Class ;
+    rdfs:subClassOf fs:FleetTransaction ;
+    rdfs:label "Maintenance Transaction" ;
+    rdfs:comment "A specific type of Fleet Transaction representing vehicle maintenance or repair services." .
+
+fs:TollTransaction
+    rdf:type owl:Class ;
+    rdfs:subClassOf fs:FleetTransaction ;
+    rdfs:label "Toll Transaction" ;
+    rdfs:comment "A specific type of Fleet Transaction representing payment for road tolls." .
+
+# Further transaction subclasses could be added (e.g., ParkingTransaction, CleaningTransaction)
+
+fs:Vehicle
+    rdf:type owl:Class ;
+    rdfs:label "Vehicle" ;
+    rdfs:comment "Represents a vehicle within the managed fleet." .
+
+fs:Driver
+    rdf:type owl:Class ;
+    rdfs:label "Driver" ;
+    rdfs:comment "Represents a driver associated with the fleet." .
+
+# --- Data Properties ---
+
+# Common Transaction Properties
+fs:transactionID
+    rdf:type owl:DatatypeProperty ;
+    rdfs:label "Transaction ID" ;
+    rdfs:comment "Unique identifier for a transaction." ;
+    rdfs:domain fs:FleetTransaction ;
+    rdfs:range xsd:string .
+
+fs:timestamp
+    rdf:type owl:DatatypeProperty ;
+    rdfs:label "Timestamp" ;
+    rdfs:comment "Date and time when the transaction occurred (ISO 8601 format)." ;
+    rdfs:domain fs:FleetTransaction ;
+    rdfs:range xsd:dateTime .
+
+fs:amount
+    rdf:type owl:DatatypeProperty ;
+    rdfs:label "Amount" ;
+    rdfs:comment "The monetary value of the transaction." ;
+    rdfs:domain fs:FleetTransaction ;
+    rdfs:range xsd:decimal . # Use decimal for currency precision
+
+fs:currency
+    rdf:type owl:DatatypeProperty ;
+    rdfs:label "Currency" ;
+    rdfs:comment "Currency code (e.g., USD, EUR)." ;
+    rdfs:domain fs:FleetTransaction ;
+    rdfs:range xsd:string . # Consider restricting to ISO 4217 codes via constraints later
+
+fs:merchantName
+    rdf:type owl:DatatypeProperty ;
+    rdfs:label "Merchant Name" ;
+    rdfs:comment "Name of the merchant where the transaction occurred." ;
+    rdfs:domain fs:FleetTransaction ;
+    rdfs:range xsd:string .
+
+fs:merchantCategory
+    rdf:type owl:DatatypeProperty ;
+    rdfs:label "Merchant Category" ;
+    rdfs:comment "Category of the merchant (e.g., 'Fuel Station', 'Repair Shop', 'Toll Road Authority')." ;
+    rdfs:domain fs:FleetTransaction ;
+    rdfs:range xsd:string . # Could become a class if categories are complex/hierarchical
+
+fs:latitude
+    rdf:type owl:DatatypeProperty ;
+    rdfs:label "Latitude" ;
+    rdfs:comment "Geographic latitude of the transaction location." ;
+    rdfs:domain fs:FleetTransaction ;
+    rdfs:range xsd:decimal .
+
+fs:longitude
+    rdf:type owl:DatatypeProperty ;
+    rdfs:label "Longitude" ;
+    rdfs:comment "Geographic longitude of the transaction location." ;
+    rdfs:domain fs:FleetTransaction ;
+    rdfs:range xsd:decimal .
+
+# Fuel Specific Properties
+fs:fuelType
+    rdf:type owl:DatatypeProperty ;
+    rdfs:label "Fuel Type" ;
+    rdfs:comment "Type of fuel purchased (e.g., 'Gasoline', 'Diesel', 'Electric Charge')." ;
+    rdfs:domain fs:FuelTransaction ;
+    rdfs:range xsd:string .
+
+fs:fuelVolume
+    rdf:type owl:DatatypeProperty ;
+    rdfs:label "Fuel Volume" ;
+    rdfs:comment "Volume of fuel purchased (e.g., gallons, liters, kWh)." ;
+    rdfs:domain fs:FuelTransaction ;
+    rdfs:range xsd:decimal .
+
+fs:fuelVolumeUnit
+    rdf:type owl:DatatypeProperty ;
+    rdfs:label "Fuel Volume Unit" ;
+    rdfs:comment "Unit for the fuel volume (e.g., 'gallon', 'litre', 'kWh')." ;
+    rdfs:domain fs:FuelTransaction ;
+    rdfs:range xsd:string .
+
+# Maintenance Specific Properties
+fs:maintenanceType
+    rdf:type owl:DatatypeProperty ;
+    rdfs:label "Maintenance Type" ;
+    rdfs:comment "Description of maintenance performed (e.g., 'Oil Change', 'Tire Rotation', 'Brake Repair')." ;
+    rdfs:domain fs:MaintenanceTransaction ;
+    rdfs:range xsd:string .
+
+fs:odometerReading
+    rdf:type owl:DatatypeProperty ;
+    rdfs:label "Odometer Reading" ;
+    rdfs:comment "Vehicle odometer reading at the time of transaction/maintenance." ;
+    rdfs:domain fs:MaintenanceTransaction ; # Also potentially applicable to FuelTransaction
+    rdfs:range xsd:integer .
+
+# Vehicle Properties
+fs:vehicleID
+    rdf:type owl:DatatypeProperty ;
+    rdfs:label "Vehicle ID" ;
+    rdfs:comment "Unique identifier for the vehicle (e.g., VIN, internal ID)." ;
+    rdfs:domain fs:Vehicle ;
+    rdfs:range xsd:string .
+
+fs:vehicleMake
+    rdf:type owl:DatatypeProperty ;
+    rdfs:label "Vehicle Make" ;
+    rdfs:comment "Manufacturer of the vehicle (e.g., 'Ford', 'Toyota')." ;
+    rdfs:domain fs:Vehicle ;
+    rdfs:range xsd:string .
+
+fs:vehicleModel
+    rdf:type owl:DatatypeProperty ;
+    rdfs:label "Vehicle Model" ;
+    rdfs:comment "Model name of the vehicle (e.g., 'F-150', 'Camry')." ;
+    rdfs:domain fs:Vehicle ;
+    rdfs:range xsd:string .
+
+fs:vehicleYear
+    rdf:type owl:DatatypeProperty ;
+    rdfs:label "Vehicle Year" ;
+    rdfs:comment "Model year of the vehicle." ;
+    rdfs:domain fs:Vehicle ;
+    rdfs:range xsd:gYear .
+
+fs:vehicleType
+    rdf:type owl:DatatypeProperty ;
+    rdfs:label "Vehicle Type" ;
+    rdfs:comment "General classification of the vehicle (e.g., 'Sedan', 'Pickup Truck', 'Van', 'EV')." ;
+    rdfs:domain fs:Vehicle ;
+    rdfs:range xsd:string .
+
+fs:fuelCapacity
+    rdf:type owl:DatatypeProperty ;
+    rdfs:label "Fuel Capacity" ;
+    rdfs:comment "Vehicle's fuel tank capacity (or battery capacity for EVs)." ;
+    rdfs:domain fs:Vehicle ;
+    rdfs:range xsd:decimal .
+
+fs:fuelCapacityUnit
+    rdf:type owl:DatatypeProperty ;
+    rdfs:label "Fuel Capacity Unit" ;
+    rdfs:comment "Unit for fuel capacity." ;
+    rdfs:domain fs:Vehicle ;
+    rdfs:range xsd:string .
+
+# Driver Properties
+fs:driverID
+    rdf:type owl:DatatypeProperty ;
+    rdfs:label "Driver ID" ;
+    rdfs:comment "Unique identifier for the driver." ;
+    rdfs:domain fs:Driver ;
+    rdfs:range xsd:string .
+
+fs:driverName
+    rdf:type owl:DatatypeProperty ;
+    rdfs:label "Driver Name" ;
+    rdfs:comment "Full name of the driver." ;
+    rdfs:domain fs:Driver ;
+    rdfs:range xsd:string .
+
+fs:driverLicenseNumber # Example - Use with EXTREME CAUTION re: PII
+    rdf:type owl:DatatypeProperty ;
+    rdfs:label "Driver License Number" ;
+    rdfs:comment "Driver's license number (Note: PII implications)." ;
+    rdfs:domain fs:Driver ;
+    rdfs:range xsd:string .
+
+# --- Object Properties ---
+
+fs:transactionInvolvesVehicle
+    rdf:type owl:ObjectProperty ;
+    rdfs:label "Transaction Involves Vehicle" ;
+    rdfs:comment "Links a transaction to the specific vehicle involved." ;
+    rdfs:domain fs:FleetTransaction ;
+    rdfs:range fs:Vehicle .
+    # Could consider owl:FunctionalProperty if only one vehicle per transaction
+
+fs:transactionPerformedBy
+    rdf:type owl:ObjectProperty ;
+    rdfs:label "Transaction Performed By" ;
+    rdfs:comment "Links a transaction to the specific driver who performed it." ;
+    rdfs:domain fs:FleetTransaction ;
+    rdfs:range fs:Driver .
+
+# Define inverse properties for navigation convenience
+fs:vehicleInvolvedInTransaction
+    rdf:type owl:ObjectProperty ;
+    owl:inverseOf fs:transactionInvolvesVehicle .
+
+fs:driverPerformedTransaction
+    rdf:type owl:ObjectProperty ;
+    owl:inverseOf fs:transactionPerformedBy .
+
+# Define association between drivers and vehicles (potentially complex, e.g., time-bound)
+fs:assignedVehicle
+    rdf:type owl:ObjectProperty ;
+    rdfs:label "Assigned Vehicle" ;
+    rdfs:comment "Indicates a vehicle commonly assigned to a driver (simplistic view)." ;
+    rdfs:domain fs:Driver ;
+    rdfs:range fs:Vehicle .
+
+fs:driverAssignment # Might be better modelled as a separate 'Assignment' class if time-bound etc.
+    rdf:type owl:ObjectProperty ;
+    owl:inverseOf fs:assignedVehicle .
+##### owl/fleetsight-geo.ttl #####
+@prefix :      <http://example.org/fleetsight#> .
+@prefix fs:    <http://example.org/fleetsight#> .
+@prefix owl:   <http://www.w3.org/2002/07/owl#> .
+@prefix rdf:   <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs:  <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd:   <http://www.w3.org/2001/XMLSchema#> .
+@prefix geo:   <http://www.w3.org/2003/01/geo/wgs84_pos#> . # Import standard WGS84 vocab
+@prefix sf:    <http://www.opengis.net/ont/sf#> .      # Simple Features vocabulary if needed for geometry types
+@prefix core:  <http://example.org/fleetsight-core-entities#> .
+
+# Ontology Declaration
+<http://example.org/fleetsight-geo>
+    rdf:type owl:Ontology ;
+    owl:imports <http://www.w3.org/2003/01/geo/wgs84_pos#>,
+                <http://example.org/fleetsight-core-entities> ;
+    rdfs:label "FleetSight Geographic Ontology" ;
+    rdfs:comment "Defines geographic features, locations, routes, and regions relevant to fleet operations." .
+
+# --- Classes ---
+
+fs:GeographicFeature
+    rdf:type owl:Class ;
+    rdfs:label "Geographic Feature" ;
+    rdfs:comment "An abstract class for anything with a spatial location or extent." .
+
+fs:PointLocation # Representing a specific point using WGS84
+    rdf:type owl:Class ;
+    rdfs:subClassOf fs:GeographicFeature, geo:Point .
+
+fs:GeographicRegion
+    rdf:type owl:Class ;
+    rdfs:subClassOf fs:GeographicFeature ;
+    rdfs:label "Geographic Region" ;
+    rdfs:comment "A defined area or territory with a boundary.".
+fs:SalesTerritory rdf:type owl:Class ; rdfs:subClassOf fs:GeographicRegion ; rdfs:label "Sales Territory".
+fs:ServiceArea rdf:type owl:Class ; rdfs:subClassOf fs:GeographicRegion ; rdfs:label "Service Area".
+fs:RestrictedZone rdf:type owl:Class ; rdfs:subClassOf fs:GeographicRegion ; rdfs:label "Restricted Zone".
+
+fs:Route
+    rdf:type owl:Class ;
+    rdfs:subClassOf fs:GeographicFeature ;
+    rdfs:label "Route" ;
+    rdfs:comment "A defined path or sequence of locations.".
+fs:PlannedRoute rdf:type owl:Class ; rdfs:subClassOf fs:Route ; rdfs:label "Planned Route".
+fs:ActualPath rdf:type owl:Class ; rdfs:subClassOf fs:Route ; rdfs:label "Actual Path" ; rdfs:comment "Recorded path taken by a vehicle.".
+
+fs:PointOfInterest
+    rdf:type owl:Class ;
+    rdfs:subClassOf fs:PointLocation ; # POIs are specific points
+    rdfs:label "Point Of Interest" ;
+    rdfs:comment "A specific location of significance.".
+fs:HomeBasePOI rdf:type owl:Class ; rdfs:subClassOf fs:PointOfInterest ; rdfs:label "Home Base POI".
+fs:FuelDepotPOI rdf:type owl:Class ; rdfs:subClassOf fs:PointOfInterest ; rdfs:label "Fuel Depot POI".
+fs:MaintenanceHubPOI rdf:type owl:Class ; rdfs:subClassOf fs:PointOfInterest ; rdfs:label "Maintenance Hub POI".
+fs:ClientSitePOI rdf:type owl:Class ; rdfs:subClassOf fs:PointOfInterest ; rdfs:label "Client Site POI".
+fs:KnownFuelStationPOI rdf:type owl:Class ; rdfs:subClassOf fs:PointOfInterest ; rdfs:label "Known Fuel Station POI".
+
+fs:Geofence
+    rdf:type owl:Class ;
+    rdfs:subClassOf fs:GeographicRegion ; # Geofence defines a region boundary
+    rdfs:label "Geofence" ;
+    rdfs:comment "A virtual perimeter for a real-world geographic area.".
+
+fs:GeometricShape # To represent boundaries / routes if needed abstractly
+    rdf:type owl:Class .
+fs:PolygonShape
+    rdf:type owl:Class ; rdfs:subClassOf fs:GeometricShape, sf:Polygon ; rdfs:label "Polygon Shape". # Reuse standard if suitable
+fs:LineStringShape
+    rdf:type owl:Class ; rdfs:subClassOf fs:GeometricShape, sf:LineString ; rdfs:label "LineString Shape". # Reuse standard if suitable
+
+# --- Data Properties ---
+
+# Inherit geo:lat, geo:long for PointLocation
+
+fs:regionName rdf:type owl:DatatypeProperty ; rdfs:domain fs:GeographicRegion ; rdfs:range xsd:string ; rdfs:label "Region Name".
+fs:routeName rdf:type owl:DatatypeProperty ; rdfs:domain fs:Route ; rdfs:range xsd:string ; rdfs:label "Route Name".
+fs:poiName rdf:type owl:DatatypeProperty ; rdfs:domain fs:PointOfInterest ; rdfs:range xsd:string ; rdfs:label "POI Name".
+fs:poiCategory rdf:type owl:DatatypeProperty ; rdfs:domain fs:PointOfInterest ; rdfs:range xsd:string ; rdfs:label "POI Category" ; rdfs:comment "e.g., 'Fuel', 'Maintenance', 'Office', 'Client'".
+
+fs:geofenceID rdf:type owl:DatatypeProperty ; rdfs:domain fs:Geofence ; rdfs:range xsd:string ; rdfs:label "Geofence ID".
+fs:geofenceType rdf:type owl:DatatypeProperty ; rdfs:domain fs:Geofence ; rdfs:label "Geofence Type" ; rdfs:range [ rdf:type rdfs:Datatype ; owl:oneOf ("Inclusion" "Exclusion") ].
+
+# For storing geometry definitions - implementation detail in the data property value
+fs:geometryDefinitionWKT rdf:type owl:DatatypeProperty ; rdfs:domain fs:GeometricShape ; rdfs:range xsd:string ; rdfs:label "Geometry Definition (WKT)"; rdfs:comment "Well-Known Text representation of the shape.".
+fs:geometryDefinitionGeoJSON rdf:type owl:DatatypeProperty ; rdfs:domain fs:GeometricShape ; rdfs:range xsd:string ; rdfs:label "Geometry Definition (GeoJSON)"; rdfs:comment "GeoJSON representation of the shape.".
+
+fs:routeNominalDistance rdf:type owl:DatatypeProperty ; rdfs:domain fs:Route ; rdfs:range xsd:decimal ; rdfs:label "Route Nominal Distance".
+fs:routeDistanceUnit rdf:type owl:DatatypeProperty ; rdfs:domain fs:Route ; rdfs:range xsd:string ; rdfs:label "Route Distance Unit" ; rdfs:comment "'km', 'mile'".
+fs:routeNominalDuration rdf:type owl:DatatypeProperty ; rdfs:domain fs:Route ; rdfs:range xsd:duration ; rdfs:label "Route Nominal Duration".
+
+# --- Object Properties ---
+
+fs:hasGeometry # Links a geographic feature to its shape definition
+    rdf:type owl:ObjectProperty ; rdfs:domain fs:GeographicFeature ; rdfs:range fs:GeometricShape ; rdfs:label "Has Geometry".
+
+fs:definesBoundaryOf
+    rdf:type owl:ObjectProperty ; rdfs:domain fs:PolygonShape ; rdfs:range fs:GeographicRegion ; rdfs:label "Defines Boundary Of".
+fs:representsPathOf
+    rdf:type owl:ObjectProperty ; rdfs:domain fs:LineStringShape ; rdfs:range fs:Route ; rdfs:label "Represents Path Of".
+
+# Relationships between transactions/vehicles and geographic features
+fs:occursWithin # Transaction/Vehicle state within a region
+    rdf:type owl:ObjectProperty ; rdfs:domain owl:Thing ; rdfs:range fs:GeographicRegion ; rdfs:label "Occurs Within / Located Within" . # Use owl:Thing to apply to both Transactions and instantaneous Vehicle locations.
+core:transactionOccursWithin
+    rdf:type owl:ObjectProperty ; rdfs:subPropertyOf fs:occursWithin ; rdfs:domain core:FleetTransaction ; rdfs:range fs:GeographicRegion .
+fs:vehicleCurrentlyWithin
+    rdf:type owl:ObjectProperty ; rdfs:subPropertyOf fs:occursWithin ; rdfs:domain core:Vehicle ; rdfs:range fs:GeographicRegion .
+
+fs:locationNearPOI # Use distance calculation externally
+    rdf:type owl:ObjectProperty ; rdfs:domain fs:PointLocation ; rdfs:range fs:PointOfInterest ; rdfs:label "Location Near POI".
+core:transactionNearPOI
+    rdf:type owl:ObjectProperty ; rdfs:subPropertyOf fs:locationNearPOI ; rdfs:domain core:FleetTransaction ; rdfs:range fs:PointOfInterest .
+
+fs:violatesGeofence
+    rdf:type owl:ObjectProperty ; rdfs:domain owl:Thing ; rdfs:range fs:Geofence ; rdfs:label "Violates Geofence" ; rdfs:comment "Indicates crossing into an exclusion zone or out of an inclusion zone.".
+core:transactionViolatesGeofence
+    rdf:type owl:ObjectProperty ; rdfs:subPropertyOf fs:violatesGeofence ; rdfs:domain core:FleetTransaction ; rdfs:range fs:Geofence .
+
+fs:deviatesFromPlannedRoute
+    rdf:type owl:ObjectProperty ; rdfs:domain core:FleetTransaction ; # Or perhaps fs:ActualPath? Depends on modeling detail
+    rdfs:range fs:PlannedRoute ;
+    rdfs:label "Deviates From Planned Route".
+
+fs:routeStartsAt rdf:type owl:ObjectProperty ; rdfs:domain fs:Route ; rdfs:range fs:PointOfInterest ; rdfs:label "Route Starts At".
+fs:routeEndsAt rdf:type owl:ObjectProperty ; rdfs:domain fs:Route ; rdfs:range fs:PointOfInterest ; rdfs:label "Route Ends At".
+fs:routeIncludesWaypoint rdf:type owl:ObjectProperty ; rdfs:domain fs:Route ; rdfs:range fs:PointOfInterest ; rdfs:label "Route Includes Waypoint".
+##### owl/fleetsight-ml.ttl #####
+@prefix :      <http://example.org/fleetsight#> .
+@prefix fs:    <http://example.org/fleetsight#> .
+@prefix owl:   <http://www.w3.org/2002/07/owl#> .
+@prefix rdf:   <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs:  <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd:   <http://www.w3.org/2001/XMLSchema#> .
+@prefix core:  <http://example.org/fleetsight-core-entities#> .
+@prefix anomaly: <http://example.org/fleetsight-anomaly#> .
+
+# Ontology Declaration
+<http://example.org/fleetsight-ml>
+    rdf:type owl:Ontology ;
+    owl:imports <http://example.org/fleetsight-core-entities>,
+                <http://example.org/fleetsight-anomaly> ;
+    rdfs:label "FleetSight Machine Learning Ontology" ;
+    rdfs:comment "Defines concepts related to ML models, features, training, and prediction within FleetSight." .
+
+# --- Classes ---
+
+fs:MLAsset
+    rdf:type owl:Class ;
+    rdfs:label "Machine Learning Asset" ;
+    rdfs:comment "A general class for ML-related artifacts." .
+
+fs:MachineLearningModel
+    rdf:type owl:Class ;
+    rdfs:subClassOf fs:MLAsset ;
+    rdfs:label "Machine Learning Model" ;
+    rdfs:comment "Represents a trained machine learning model used within the system." .
+
+fs:AnomalyDetectionModel
+    rdf:type owl:Class ;
+    rdfs:subClassOf fs:MachineLearningModel ;
+    rdfs:label "Anomaly Detection Model" ;
+    rdfs:comment "A specific ML model designed to detect anomalies in data." .
+
+# Specific model types (could extend significantly)
+fs:StatisticalModel
+    rdf:type owl:Class; rdfs:subClassOf fs:AnomalyDetectionModel ; rdfs:label "Statistical Model" .
+fs:ClusteringBasedModel
+    rdf:type owl:Class; rdfs:subClassOf fs:AnomalyDetectionModel ; rdfs:label "Clustering-Based Model" .
+fs:TreeBasedModel
+    rdf:type owl:Class; rdfs:subClassOf fs:AnomalyDetectionModel ; rdfs:label "Tree-Based Model" .
+fs:NeuralNetworkModel
+    rdf:type owl:Class; rdfs:subClassOf fs:AnomalyDetectionModel ; rdfs:label "Neural Network Model" .
+
+fs:ZScoreModel
+    rdf:type owl:Class ; rdfs:subClassOf fs:StatisticalModel ; rdfs:label "Z-Score Model" .
+fs:IsolationForestModel
+    rdf:type owl:Class ; rdfs:subClassOf fs:TreeBasedModel ; rdfs:label "Isolation Forest Model" .
+fs:DBSCANModel
+    rdf:type owl:Class ; rdfs:subClassOf fs:ClusteringBasedModel ; rdfs:label "DBSCAN Model" .
+fs:AutoencoderModel
+    rdf:type owl:Class ; rdfs:subClassOf fs:NeuralNetworkModel ; rdfs:label "Autoencoder Model" .
+
+fs:MLData
+    rdf:type owl:Class ;
+    rdfs:subClassOf fs:MLAsset ;
+    rdfs:label "Machine Learning Data" ;
+    rdfs:comment "Represents data used for training or prediction." .
+
+fs:FeatureVector
+    rdf:type owl:Class ;
+    rdfs:subClassOf fs:MLData ;
+    rdfs:label "Feature Vector" ;
+    rdfs:comment "A structured set of features used as input for an ML model." .
+
+fs:TrainingDataset
+    rdf:type owl:Class ;
+    rdfs:subClassOf fs:MLData ;
+    rdfs:label "Training Dataset" ;
+    rdfs:comment "A collection of data used to train an ML model." .
+
+fs:PredictionInput
+    rdf:type owl:Class ;
+    rdfs:subClassOf fs:MLData ;
+    rdfs:label "Prediction Input" ;
+    rdfs:comment "Data provided to an ML model to generate a prediction." .
+
+fs:PredictionResult
+    rdf:type owl:Class ;
+    rdfs:label "Prediction Result" ;
+    rdfs:comment "Output generated by an ML model based on a prediction input." .
+
+fs:MLPipelineComponent
+    rdf:type owl:Class ;
+    rdfs:subClassOf fs:MLAsset ;
+    rdfs:label "ML Pipeline Component" ;
+    rdfs:comment "A step within an ML workflow." .
+
+fs:DataCleaningStep
+    rdf:type owl:Class ; rdfs:subClassOf fs:MLPipelineComponent ; rdfs:label "Data Cleaning Step".
+fs:FeatureEngineeringStep
+    rdf:type owl:Class ; rdfs:subClassOf fs:MLPipelineComponent ; rdfs:label "Feature Engineering Step".
+fs:ModelTrainingStep
+    rdf:type owl:Class ; rdfs:subClassOf fs:MLPipelineComponent ; rdfs:label "Model Training Step".
+fs:ModelEvaluationStep
+    rdf:type owl:Class ; rdfs:subClassOf fs:MLPipelineComponent ; rdfs:label "Model Evaluation Step".
+fs:ModelInferenceStep
+    rdf:type owl:Class ; rdfs:subClassOf fs:MLPipelineComponent ; rdfs:label "Model Inference Step".
+
+# --- Data Properties ---
+
+fs:modelVersion
+    rdf:type owl:DatatypeProperty ; rdfs:domain fs:MachineLearningModel ; rdfs:range xsd:string ; rdfs:label "Model Version" .
+fs:modelStoragePath
+    rdf:type owl:DatatypeProperty ; rdfs:domain fs:MachineLearningModel ; rdfs:range xsd:anyURI ; rdfs:label "Model Storage Path" ; rdfs:comment "URI pointing to the stored model artifact (e.g., s3://..., gs://..., file://...)" .
+fs:modelTrainingTimestamp
+    rdf:type owl:DatatypeProperty ; rdfs:domain fs:MachineLearningModel ; rdfs:range xsd:dateTime ; rdfs:label "Model Training Timestamp".
+fs:modelPerformanceMetricValue # E.g. Precision, Recall, F1-Score
+    rdf:type owl:DatatypeProperty ; rdfs:domain fs:MachineLearningModel ; rdfs:range xsd:float ; rdfs:label "Model Performance Metric Value".
+fs:modelPerformanceMetricType # E.g. "Precision", "Recall", "AUC"
+    rdf:type owl:DatatypeProperty ; rdfs:domain fs:MachineLearningModel ; rdfs:range xsd:string ; rdfs:label "Model Performance Metric Type".
+
+fs:featureName
+    rdf:type owl:DatatypeProperty ; rdfs:domain fs:FeatureVector ; rdfs:range xsd:string ; rdfs:label "Feature Name" . # Assumes feature vector is a concept containing names+values, maybe too complex
+fs:featureValue # Might be better modelled externally
+
+fs:predictionLabel
+    rdf:type owl:DatatypeProperty ; rdfs:domain fs:PredictionResult ; rdfs:range xsd:string ; rdfs:label "Prediction Label".
+fs:predictionScore
+    rdf:type owl:DatatypeProperty ; rdfs:domain fs:PredictionResult ; rdfs:range xsd:float ; rdfs:label "Prediction Score".
+
+# --- Object Properties ---
+
+fs:modelTrainedOn # Relates Model to specific Training Data instance
+    rdf:type owl:ObjectProperty ; rdfs:domain fs:MachineLearningModel ; rdfs:range fs:TrainingDataset ; rdfs:label "Model Trained On".
+fs:modelUsesFeatures # Which features went into training/prediction
+    rdf:type owl:ObjectProperty ; rdfs:domain fs:MachineLearningModel ; rdfs:range fs:FeatureVector ; rdfs:label "Model Uses Features". # Potentially problematic range (instance vs class?) - FeatureSet class might be better.
+fs:modelEvaluatedOn # Relates Model to Evaluation data
+    rdf:type owl:ObjectProperty ; rdfs:domain fs:MachineLearningModel ; rdfs:range fs:MLData ; rdfs:label "Model Evaluated On".
+
+fs:pipelineStepUses # E.g. FeatureEngineeringStep uses DataCleaningStep output
+    rdf:type owl:ObjectProperty ; rdfs:domain fs:MLPipelineComponent ; rdfs:range fs:MLPipelineComponent ; rdfs:label "Pipeline Step Uses Output Of".
+fs:pipelineStepProduces # Defines the type of artifact produced
+    rdf:type owl:ObjectProperty ; rdfs:domain fs:MLPipelineComponent ; rdfs:range fs:MLAsset ; rdfs:label "Pipeline Step Produces".
+
+fs:generatesPrediction
+    rdf:type owl:ObjectProperty ; rdfs:domain fs:ModelInferenceStep ; rdfs:range fs:PredictionResult ; rdfs:label "Generates Prediction".
+fs:predictionRelatesToAnomaly
+    rdf:type owl:ObjectProperty ; rdfs:domain fs:PredictionResult ; rdfs:range anomaly:TransactionAnomaly ; rdfs:label "Prediction Relates To Anomaly" ; rdfs:comment "Links a positive anomaly prediction result to the created Anomaly instance.".
+
+fs:featureDerivedFromSourceData
+    rdf:type owl:ObjectProperty ; rdfs:domain fs:FeatureVector ; rdfs:range core:FleetTransaction ; rdfs:label "Feature Derived From Source Data" ; rdfs:comment "Links features back to the original transaction(s)". # Needs careful definition if features span multiple transactions.
+##### owl/fleetsight-policy-rules.ttl #####
+@prefix :      <http://example.org/fleetsight#> .
+@prefix fs:    <http://example.org/fleetsight#> .
+@prefix owl:   <http://www.w3.org/2002/07/owl#> .
+@prefix rdf:   <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs:  <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd:   <http://www.w3.org/2001/XMLSchema#> .
+@prefix core:  <http://example.org/fleetsight-core-entities#> .
+@prefix anomaly: <http://example.org/fleetsight-anomaly#> .
+@prefix system: <http://example.org/fleetsight-system#> .
+@prefix users: <http://example.org/fleetsight-users#> .
+
+# Ontology Declaration
+<http://example.org/fleetsight-policy-rules>
+    rdf:type owl:Ontology ;
+    owl:imports <http://example.org/fleetsight-core-entities>,
+                <http://example.org/fleetsight-anomaly>,
+                <http://example.org/fleetsight-system>,
+                <http://example.org/fleetsight-users> ;
+    rdfs:label "FleetSight Policy and Rules Ontology" ;
+    rdfs:comment "Defines business rules, policies, conditions, and actions governing anomaly detection, alerting, and workflow." .
+
+# --- Classes ---
+
+fs:Policy
+    rdf:type owl:Class ;
+    rdfs:label "Policy" ;
+    rdfs:comment "A high-level guideline or set of rules governing system behavior or data handling." .
+fs:SpendingPolicy rdf:type owl:Class ; rdfs:subClassOf fs:Policy ; rdfs:label "Spending Policy".
+fs:AlertingPolicy rdf:type owl:Class ; rdfs:subClassOf fs:Policy ; rdfs:label "Alerting Policy".
+fs:DataHandlingPolicy rdf:type owl:Class ; rdfs:subClassOf fs:Policy ; rdfs:label "Data Handling Policy". # e.g., PII rules
+
+fs:RuleSet
+    rdf:type owl:Class ;
+    rdfs:label "Rule Set" ;
+    rdfs:comment "A collection of related rules often implementing a specific policy." .
+
+fs:Rule
+    rdf:type owl:Class ;
+    rdfs:label "Rule" ;
+    rdfs:comment "A specific condition-action pair defining system logic." .
+fs:AnomalyFlaggingRule rdf:type owl:Class ; rdfs:subClassOf fs:Rule ; rdfs:label "Anomaly Flagging Rule".
+fs:FeedbackHandlingRule rdf:type owl:Class ; rdfs:subClassOf fs:Rule ; rdfs:label "Feedback Handling Rule".
+fs:NotificationRule rdf:type owl:Class ; rdfs:subClassOf fs:Rule ; rdfs:label "Notification Rule".
+
+fs:Condition
+    rdf:type owl:Class ;
+    rdfs:label "Condition" ;
+    rdfs:comment "A logical predicate evaluated as part of a rule." .
+# Could be specialized further: e.g., ThresholdCondition, PatternCondition, SequenceCondition
+fs:LogicalCondition
+    rdf:type owl:Class ; rdfs:subClassOf fs:Condition ; rdfs:label "Logical Condition"; rdfs:comment "Combines multiple other conditions.".
+fs:AndCondition
+    rdf:type owl:Class ; rdfs:subClassOf fs:LogicalCondition ; rdfs:label "AND Condition".
+fs:OrCondition
+    rdf:type owl:Class ; rdfs:subClassOf fs:LogicalCondition ; rdfs:label "OR Condition".
+fs:NotCondition
+    rdf:type owl:Class ; rdfs:subClassOf fs:LogicalCondition ; rdfs:label "NOT Condition".
+
+fs:AttributeCondition
+    rdf:type owl:Class ; rdfs:subClassOf fs:Condition ; rdfs:label "Attribute Condition"; rdfs:comment "Evaluates a specific property of an entity.".
+
+fs:Action
+    rdf:type owl:Class ;
+    rdfs:label "Action" ;
+    rdfs:comment "An operation executed when a rule's conditions are met." .
+fs:CreateAnomalyAction rdf:type owl:Class ; rdfs:subClassOf fs:Action ; rdfs:label "Create Anomaly Action".
+fs:UpdateStatusAction rdf:type owl:Class ; rdfs:subClassOf fs:Action ; rdfs:label "Update Status Action".
+fs:NotifyUserAction rdf:type owl:Class ; rdfs:subClassOf fs:Action ; rdfs:label "Notify User Action".
+fs:InvokeServiceAction rdf:type owl:Class ; rdfs:subClassOf fs:Action ; rdfs:label "Invoke Service Action".
+
+fs:Threshold
+    rdf:type owl:Class ;
+    rdfs:label "Threshold" ;
+    rdfs:comment "A parameter value used within a rule condition." .
+
+# --- Data Properties ---
+
+fs:ruleID rdf:type owl:DatatypeProperty ; rdfs:domain fs:Rule ; rdfs:range xsd:string ; rdfs:label "Rule ID".
+fs:rulePriority rdf:type owl:DatatypeProperty ; rdfs:domain fs:Rule ; rdfs:range xsd:integer ; rdfs:label "Rule Priority"; rdfs:comment "Execution order hint.".
+fs:ruleDescription rdf:type owl:DatatypeProperty ; rdfs:domain fs:Rule ; rdfs:range xsd:string ; rdfs:label "Rule Description".
+fs:isActive rdf:type owl:DatatypeProperty ; rdfs:domain fs:Rule ; rdfs:range xsd:boolean ; rdfs:label "Is Active"; rdfs:comment "Whether the rule is currently enabled.".
+
+fs:conditionOperator rdf:type owl:DatatypeProperty ; rdfs:domain fs:AttributeCondition ; rdfs:range xsd:string ; rdfs:label "Condition Operator"; rdfs:comment "e.g., '>', '<=', 'equals', 'contains', 'within_polygon', 'not_in_set'." .
+fs:conditionValue rdf:type owl:DatatypeProperty ; rdfs:domain fs:AttributeCondition ; rdfs:range xsd:string ; rdfs:label "Condition Value" ; rdfs:comment "The value used in the condition comparison, needs type interpretation based on referenced property.".
+
+fs:thresholdValue rdf:type owl:DatatypeProperty ; rdfs:domain fs:Threshold ; rdfs:range xsd:string ; rdfs:label "Threshold Value"; rdfs:comment "Value associated with a Threshold object.".
+fs:thresholdUnit rdf:type owl:DatatypeProperty ; rdfs:domain fs:Threshold ; rdfs:range xsd:string ; rdfs:label "Threshold Unit"; rdfs:comment "Optional unit if the value is quantitative.".
+fs:thresholdName rdf:type owl:DatatypeProperty ; rdfs:domain fs:Threshold ; rdfs:range xsd:string ; rdfs:label "Threshold Name" ; rdfs:comment "Human-readable name/identifier for the threshold parameter.".
+
+fs:actionTargetDescription rdf:type owl:DatatypeProperty ; rdfs:domain fs:Action ; rdfs:range xsd:string ; rdfs:label "Action Target Description" ; rdfs:comment "Describes the target of the action (e.g., User group, API endpoint URL)".
+fs:notificationChannel rdf:type owl:DatatypeProperty ; rdfs:domain fs:NotifyUserAction ; rdfs:range xsd:string ; rdfs:label "Notification Channel" ; rdfs:comment "e.g., 'Email', 'SMS', 'Dashboard Alert'".
+fs:notificationTemplate rdf:type owl:DatatypeProperty ; rdfs:domain fs:NotifyUserAction ; rdfs:range xsd:string ; rdfs:label "Notification Template" ; rdfs:comment "Template for the message content.".
+
+# --- Object Properties ---
+
+fs:implementsPolicy rdf:type owl:ObjectProperty ; rdfs:domain fs:RuleSet ; rdfs:range fs:Policy ; rdfs:label "Implements Policy".
+fs:partOfRuleSet rdf:type owl:ObjectProperty ; rdfs:domain fs:Rule ; rdfs:range fs:RuleSet ; rdfs:label "Part Of Rule Set".
+fs:hasRule rdf:type owl:ObjectProperty ; owl:inverseOf fs:partOfRuleSet .
+
+fs:hasCondition rdf:type owl:ObjectProperty ; rdfs:domain fs:Rule ; rdfs:range fs:Condition ; rdfs:label "Has Condition".
+# For LogicalCondition grouping:
+fs:combinesCondition rdf:type owl:ObjectProperty ; rdfs:domain fs:LogicalCondition ; rdfs:range fs:Condition ; rdfs:label "Combines Condition".
+fs:negatesCondition rdf:type owl:ObjectProperty ; rdfs:domain fs:NotCondition ; rdfs:range fs:Condition ; rdf:type owl:FunctionalProperty ; rdfs:label "Negates Condition".
+
+fs:triggersAction rdf:type owl:ObjectProperty ; rdfs:domain fs:Rule ; rdfs:range fs:Action ; rdfs:label "Triggers Action".
+fs:conditionRefersToProperty rdf:type owl:ObjectProperty ; rdfs:domain fs:AttributeCondition ; rdfs:range rdf:Property ; rdfs:label "Condition Refers To Property" ; rdfs:comment "Links a condition check to a specific ontology property (e.g., core:amount).".
+fs:conditionUsesThreshold rdf:type owl:ObjectProperty ; rdfs:domain fs:AttributeCondition ; rdfs:range fs:Threshold ; rdfs:label "Condition Uses Threshold"; rdfs:comment "Links a condition to a defined Threshold object.".
+
+# Relating rules/conditions to the entities they apply to
+fs:appliesToClass rdf:type owl:ObjectProperty ; rdfs:domain fs:Rule ; rdfs:range owl:Class ; rdfs:label "Applies To Class" ; rdfs:comment "Specifies the type of entity this rule primarily operates on (e.g., core:FleetTransaction, anomaly:TransactionAnomaly)".
+
+# Linking actions to targets
+fs:actionUpdatesEntity rdf:type owl:ObjectProperty ; rdfs:domain fs:UpdateStatusAction ; rdfs:range owl:Thing ; rdfs:label "Action Updates Entity".
+fs:actionAffectsProperty rdf:type owl:ObjectProperty ; rdfs:domain fs:UpdateStatusAction ; rdfs:range rdf:Property ; rdfs:label "Action Affects Property".
+fs:actionNotifiesUserRole rdf:type owl:ObjectProperty ; rdfs:domain fs:NotifyUserAction ; rdfs:range users:SystemUser ; rdfs:label "Action Notifies User Role".
+fs:actionInvokesService rdf:type owl:ObjectProperty ; rdfs:domain fs:InvokeServiceAction ; rdfs:range system:APIService ; rdfs:label "Action Invokes Service".
+##### owl/fleetsight-problems.ttl #####
+@prefix :      <http://example.org/fleetsight#> .
+@prefix fs:    <http://example.org/fleetsight#> .
+@prefix owl:   <http://www.w3.org/2002/07/owl#> .
+@prefix rdf:   <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs:  <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd:   <http://www.w3.org/2001/XMLSchema#> .
+
+# Ontology Declaration
+<http://example.org/fleetsight-problems>
+    rdf:type owl:Ontology ;
+    # Import other ontologies if problems relate specifically to certain classes
+    owl:imports <http://example.org/fleetsight-core-entities>,
+                <http://example.org/fleetsight-anomaly>,
+                <http://example.org/fleetsight-ml>,
+                <http://example.org/fleetsight-system> ;
+    rdfs:label "FleetSight Problem Ontology" ;
+    rdfs:comment "Defines types of problems, risks, or issues relevant to the FleetSight system (as per SAPPO inspiration)." .
+
+# --- Classes (Using SAPPO-like structure) ---
+
+fs:SystemProblem
+    rdf:type owl:Class ; rdfs:label "System Problem" .
+
+# Data Related Problems
+fs:DataProblem
+    rdf:type owl:Class ; rdfs:subClassOf fs:SystemProblem ; rdfs:label "Data Problem".
+fs:DataQualityIssue
+    rdf:type owl:Class ; rdfs:subClassOf fs:DataProblem ; rdfs:label "Data Quality Issue".
+fs:MissingData
+    rdf:type owl:Class ; rdfs:subClassOf fs:DataQualityIssue ; rdfs:label "Missing Data".
+fs:IncorrectDataFormat
+    rdf:type owl:Class ; rdfs:subClassOf fs:DataQualityIssue ; rdfs:label "Incorrect Data Format".
+fs:DataOutlierIssue # Different from anomaly - more about data integrity
+    rdf:type owl:Class ; rdfs:subClassOf fs:DataQualityIssue ; rdfs:label "Data Outlier Issue".
+fs:DataVolumeIssue # e.g., Too much data for processing, too little for model
+    rdf:type owl:Class ; rdfs:subClassOf fs:DataProblem ; rdfs:label "Data Volume Issue".
+fs:DataFreshnessIssue
+    rdf:type owl:Class ; rdfs:subClassOf fs:DataProblem ; rdfs:label "Data Freshness Issue".
+
+# ML Related Problems
+fs:MLProblem
+    rdf:type owl:Class ; rdfs:subClassOf fs:SystemProblem ; rdfs:label "Machine Learning Problem".
+fs:ModelPerformanceIssue
+    rdf:type owl:Class ; rdfs:subClassOf fs:MLProblem ; rdfs:label "Model Performance Issue".
+fs:HighFalsePositiveRate
+    rdf:type owl:Class ; rdfs:subClassOf fs:ModelPerformanceIssue ; rdfs:label "High False Positive Rate".
+fs:HighFalseNegativeRate
+    rdf:type owl:Class ; rdfs:subClassOf fs:ModelPerformanceIssue ; rdfs:label "High False Negative Rate".
+fs:ModelStaleness
+    rdf:type owl:Class ; rdfs:subClassOf fs:MLProblem ; rdfs:label "Model Staleness" ; rdfs:comment "Model performance degraded due to data drift.".
+fs:DataDrift
+    rdf:type owl:Class ; rdfs:subClassOf fs:MLProblem ; rdfs:label "Data Drift"; rdfs:comment "Statistical properties of input data changing over time.".
+fs:ConceptDrift
+    rdf:type owl:Class ; rdfs:subClassOf fs:MLProblem ; rdfs:label "Concept Drift"; rdfs:comment "Relationship between input features and target variable changing over time.".
+
+# Security Related Problems
+fs:SecurityProblem
+    rdf:type owl:Class ; rdfs:subClassOf fs:SystemProblem ; rdfs:label "Security Problem".
+fs:PotentialFraud
+    rdf:type owl:Class ; rdfs:subClassOf fs:SecurityProblem ; rdfs:label "Potential Fraud"; rdfs:comment "Anomaly identified specifically suggesting fraudulent activity.".
+fs:DataExposure # E.g., PII leak via API
+    rdf:type owl:Class ; rdfs:subClassOf fs:SecurityProblem ; rdfs:label "Data Exposure".
+fs:UnauthorizedAccess
+    rdf:type owl:Class ; rdfs:subClassOf fs:SecurityProblem ; rdfs:label "Unauthorized Access".
+fs:InsecureConfiguration
+    rdf:type owl:Class ; rdfs:subClassOf fs:SecurityProblem ; rdfs:label "Insecure Configuration".
+
+# Operational/System Problems
+fs:OperationalProblem
+    rdf:type owl:Class ; rdfs:subClassOf fs:SystemProblem ; rdfs:label "Operational Problem".
+fs:ScalabilityBottleneck
+    rdf:type owl:Class ; rdfs:subClassOf fs:OperationalProblem ; rdfs:label "Scalability Bottleneck".
+fs:HighLatency
+    rdf:type owl:Class ; rdfs:subClassOf fs:OperationalProblem ; rdfs:label "High Latency".
+fs:PipelineFailure
+    rdf:type owl:Class ; rdfs:subClassOf fs:OperationalProblem ; rdfs:label "Pipeline Failure" ; rdfs:comment "A data or ML pipeline step failed.".
+fs:ResourceExhaustion
+    rdf:type owl:Class ; rdfs:subClassOf fs:OperationalProblem ; rdfs:label "Resource Exhaustion" ; rdfs:comment "CPU, Memory, Disk, Network limits reached.".
+
+# --- Object Properties (Relating problems to the system) ---
+
+fs:problemManifestsIn
+    rdf:type owl:ObjectProperty ; rdfs:domain fs:SystemProblem ; rdfs:range owl:Thing ; # Can affect anything
+    rdfs:label "Problem Manifests In" ; rdfs:comment "Links the problem to the component/data/model where it is observed.".
+
+fs:problemDetectedBy
+    rdf:type owl:ObjectProperty ; rdfs:domain fs:SystemProblem ; rdfs:range owl:Thing ; # Can be detected by monitoring, model eval, user report etc.
+    rdfs:label "Problem Detected By".
+
+fs:potentialMitigation
+    rdf:type owl:ObjectProperty ; rdfs:domain fs:SystemProblem ; rdfs:range owl:Thing ; # Mitigation could be a code change, config change, new model etc.
+    rdfs:label "Potential Mitigation".
+
+fs:causedBy # Could chain problems
+    rdf:type owl:ObjectProperty ; rdfs:domain fs:SystemProblem ; rdfs:range fs:SystemProblem ; rdfs:label "Caused By".
+##### owl/fleetsight-security-mechanisms.ttl #####
+@prefix :      <http://example.org/fleetsight#> .
+@prefix fs:    <http://example.org/fleetsight#> .
+@prefix owl:   <http://www.w3.org/2002/07/owl#> .
+@prefix rdf:   <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs:  <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd:   <http://www.w3.org/2001/XMLSchema#> .
+@prefix system: <http://example.org/fleetsight-system#> .
+@prefix users: <http://example.org/fleetsight-users#> .
+@prefix problems: <http://example.org/fleetsight-problems#> . # Link to problem types
+
+# Ontology Declaration
+<http://example.org/fleetsight-security-mechanisms>
+    rdf:type owl:Ontology ;
+    owl:imports <http://example.org/fleetsight-system>,
+                <http://example.org/fleetsight-users>,
+                <http://example.org/fleetsight-problems> ;
+    rdfs:label "FleetSight Security Mechanisms Ontology" ;
+    rdfs:comment "Defines specific security controls, policies, authentication, authorization, and data protection mechanisms." .
+
+# --- Classes ---
+
+fs:SecurityMechanism
+    rdf:type owl:Class ; rdfs:label "Security Mechanism"; rdfs:comment "Any component or process providing a security function.".
+
+fs:AuthenticationMechanism
+    rdf:type owl:Class ; rdfs:subClassOf fs:SecurityMechanism ; rdfs:label "Authentication Mechanism".
+fs:OAuth2Flow rdf:type owl:Class ; rdfs:subClassOf fs:AuthenticationMechanism ; rdfs:label "OAuth 2.0 Flow".
+fs:JWTValidation rdf:type owl:Class ; rdfs:subClassOf fs:AuthenticationMechanism ; rdfs:label "JWT Validation".
+fs:APIKeyCheck rdf:type owl:Class ; rdfs:subClassOf fs:AuthenticationMechanism ; rdfs:label "API Key Check".
+fs:PasswordAuth rdf:type owl:Class ; rdfs:subClassOf fs:AuthenticationMechanism ; rdfs:label "Password Authentication". # Likely for UI login
+
+fs:AuthorizationMechanism
+    rdf:type owl:Class ; rdfs:subClassOf fs:SecurityMechanism ; rdfs:label "Authorization Mechanism".
+fs:RoleBasedAccessControl (RBAC)
+    rdf:type owl:Class ; rdfs:subClassOf fs:AuthorizationMechanism ; rdfs:label "Role-Based Access Control (RBAC)".
+fs:AttributeBasedAccessControl (ABAC)
+    rdf:type owl:Class ; rdfs:subClassOf fs:AuthorizationMechanism ; rdfs:label "Attribute-Based Access Control (ABAC)".
+
+fs:EncryptionMechanism
+    rdf:type owl:Class ; rdfs:subClassOf fs:SecurityMechanism ; rdfs:label "Encryption Mechanism".
+fs:EncryptionAtRest rdf:type owl:Class ; rdfs:subClassOf fs:EncryptionMechanism ; rdfs:label "Encryption At Rest".
+fs:EncryptionInTransit rdf:type owl:Class ; rdfs:subClassOf fs:EncryptionMechanism ; rdfs:label "Encryption In Transit".
+fs:TLS rdf:type owl:Class ; rdfs:subClassOf fs:EncryptionInTransit ; rdfs:label "Transport Layer Security (TLS)".
+fs:AESEncryption rdf:type owl:Class ; rdfs:subClassOf fs:EncryptionAtRest ; rdfs:label "AES Encryption".
+
+fs:LoggingMechanism
+    rdf:type owl:Class ; rdfs:subClassOf fs:SecurityMechanism ; rdfs:label "Logging Mechanism".
+fs:AuditTrailLogging rdf:type owl:Class ; rdfs:subClassOf fs:LoggingMechanism ; rdfs:label "Audit Trail Logging".
+fs:SecurityEventLogging rdf:type owl:Class ; rdfs:subClassOf fs:LoggingMechanism ; rdfs:label "Security Event Logging".
+
+fs:InputValidationMechanism
+    rdf:type owl:Class ; rdfs:subClassOf fs:SecurityMechanism ; rdfs:label "Input Validation Mechanism".
+fs:SchemaValidation (Pydantic) rdf:type owl:Class ; rdfs:subClassOf fs:InputValidationMechanism ; rdfs:label "Schema Validation (Pydantic)".
+fs:SanitizationMechanism rdf:type owl:Class ; rdfs:subClassOf fs:InputValidationMechanism ; rdfs:label "Sanitization Mechanism".
+
+fs:SecurityPolicy # More concrete than the Policy Rule one, relates to Mechanisms
+    rdf:type owl:Class ; rdfs:subClassOf policy-rules:Policy ; rdfs:label "Security Policy".
+fs:AccessControlPolicy rdf:type owl:Class ; rdfs:subClassOf fs:SecurityPolicy ; rdfs:label "Access Control Policy".
+fs:DataRetentionPolicy rdf:type owl:Class ; rdfs:subClassOf fs:SecurityPolicy ; rdfs:label "Data Retention Policy".
+
+fs:Permission
+    rdf:type owl:Class ; rdfs:label "Permission"; rdfs:comment "Defines the ability to perform an action on a resource.".
+fs:ReadPermission rdf:type owl:Class ; rdfs:subClassOf fs:Permission ; rdfs:label "Read Permission".
+fs:WritePermission rdf:type owl:Class ; rdfs:subClassOf fs:Permission ; rdfs:label "Write Permission".
+fs:CreatePermission rdf:type owl:Class ; rdfs:subClassOf fs:Permission ; rdfs:label "Create Permission".
+fs:DeletePermission rdf:type owl:Class ; rdfs:subClassOf fs:Permission ; rdfs:label "Delete Permission".
+fs:ReviewFeedbackPermission rdf:type owl:Class ; rdfs:subClassOf fs:Permission ; rdfs:label "Review Feedback Permission".
+
+fs:Resource # The target of permissions
+    rdf:type owl:Class ; rdfs:label "Resource" .
+# Can link this back to system components, API endpoints, or data classes defined in other ontologies
+
+# --- Data Properties ---
+
+fs:authProviderURI rdf:type owl:DatatypeProperty ; rdfs:domain fs:OAuth2Flow ; rdfs:range xsd:anyURI ; rdfs:label "Auth Provider URI".
+fs:jwtExpectedIssuer rdf:type owl:DatatypeProperty ; rdfs:domain fs:JWTValidation ; rdfs:range xsd:string ; rdfs:label "JWT Expected Issuer".
+fs:apiKeyStorageMechanism rdf:type owl:DatatypeProperty ; rdfs:domain fs:APIKeyCheck ; rdfs:range xsd:string ; rdfs:label "API Key Storage Mechanism"; rdfs:comment "e.g., 'HTTP Header X-API-KEY', 'Query Param api_key'".
+
+fs:permissionAction rdf:type owl:DatatypeProperty ; rdfs:domain fs:Permission ; rdfs:range xsd:string ; rdfs:label "Permission Action"; rdfs:comment "e.g., 'GET', 'POST', 'UPDATE', 'view_dashboard'".
+fs:resourceIdentifierPattern rdf:type owl:DatatypeProperty ; rdfs:domain fs:Permission ; rdfs:range xsd:string ; rdfs:label "Resource Identifier Pattern"; rdfs:comment "e.g., '/anomalies/*', '/vehicles/{id}'".
+
+fs:tlsVersion rdf:type owl:DatatypeProperty ; rdfs:domain fs:TLS ; rdfs:range xsd:string ; rdfs:label "TLS Version"; rdfs:comment "e.g., '1.2', '1.3'".
+fs:encryptionAlgorithm rdf:type owl:DatatypeProperty ; rdfs:domain fs:EncryptionMechanism ; rdfs:range xsd:string ; rdfs:label "Encryption Algorithm"; rdfs:comment "e.g., 'AES-256-GCM'".
+fs:encryptionKeyLength rdf:type owl:DatatypeProperty ; rdfs:domain fs:EncryptionMechanism ; rdfs:range xsd:integer ; rdfs:label "Encryption Key Length".
+
+fs:logRetentionPeriod rdf:type owl:DatatypeProperty ; rdfs:domain fs:LoggingMechanism ; rdfs:range xsd:duration ; rdfs:label "Log Retention Period".
+
+# --- Object Properties ---
+
+fs:implementsMechanism rdf:type owl:ObjectProperty ; rdfs:domain system:SoftwareComponent ; rdfs:range fs:SecurityMechanism ; rdfs:label "Implements Mechanism".
+fs:mechanismProtects rdf:type owl:ObjectProperty ; rdfs:domain fs:SecurityMechanism ; rdfs:range owl:Thing ; rdfs:label "Mechanism Protects"; rdfs:comment "Links mechanism to the component, endpoint, or data it secures.".
+fs:enforcesSecurityPolicy rdf:type owl:ObjectProperty ; rdfs:domain fs:SecurityMechanism ; rdfs:range fs:SecurityPolicy ; rdfs:label "Enforces Security Policy".
+
+fs:authenticationProvidedBy rdf:type owl:ObjectProperty ; rdfs:domain users:SystemUser ; rdfs:range fs:AuthenticationMechanism ; rdfs:label "Authentication Provided By".
+fs:authorizationManagedBy rdf:type owl:ObjectProperty ; rdfs:domain fs:Resource ; rdfs:range fs:AuthorizationMechanism ; rdfs:label "Authorization Managed By".
+
+# Linking Roles, Permissions, and Resources for RBAC
+fs:roleIsAssignedTo rdf:type owl:ObjectProperty ; rdfs:domain users:SystemUser ; rdfs:range users:SystemUser ; # Reusing SystemUser Roles like FleetManager etc
+    rdfs:label "User Has Role".
+fs:roleGrantsPermission rdf:type owl:ObjectProperty ; rdfs:domain users:SystemUser ; rdfs:range fs:Permission ; rdfs:label "Role Grants Permission".
+fs:permissionAppliesToResource rdf:type owl:ObjectProperty ; rdfs:domain fs:Permission ; rdfs:range fs:Resource ; rdfs:label "Permission Applies To Resource". # Resource needs to be defined better perhaps using URI or linking to system classes
+
+fs:dataEncryptedBy rdf:type owl:ObjectProperty ; rdfs:domain rdf:Property ; rdfs:range fs:EncryptionMechanism ; rdfs:label "Data Encrypted By"; rdfs:comment "Which specific data properties are encrypted.".
+fs:communicationSecuredBy rdf:type owl:ObjectProperty ; rdfs:domain system:APIService ; rdfs:range fs:EncryptionInTransit ; rdfs:label "Communication Secured By".
+
+fs:logsSecurityEventsTo rdf:type owl:ObjectProperty ; rdfs:domain fs:SecurityMechanism ; rdfs:range fs:LoggingMechanism ; rdfs:label "Logs Security Events To".
+
+fs:validationMechanismChecksInputTo rdf:type owl:ObjectProperty ; rdfs:domain fs:InputValidationMechanism ; rdfs:range system:APIEndpoint ; rdfs:label "Validation Mechanism Checks Input To".
+##### owl/fleetsight-system.ttl #####
+@prefix :      <http://example.org/fleetsight#> .
+@prefix fs:    <http://example.org/fleetsight#> .
+@prefix owl:   <http://www.w3.org/2002/07/owl#> .
+@prefix rdf:   <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs:  <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd:   <http://www.w3.org/2001/XMLSchema#> .
+@prefix core:  <http://example.org/fleetsight-core-entities#> .
+@prefix anomaly: <http://example.org/fleetsight-anomaly#> .
+@prefix ml:    <http://example.org/fleetsight-ml#> .
+
+# Ontology Declaration
+<http://example.org/fleetsight-system>
+    rdf:type owl:Ontology ;
+    owl:imports <http://example.org/fleetsight-core-entities>,
+                <http://example.org/fleetsight-anomaly>,
+                <http://example.org/fleetsight-ml> ;
+    rdfs:label "FleetSight System & Infrastructure Ontology" ;
+    rdfs:comment "Defines software components, APIs, databases, and deployment concepts." .
+
+# --- Classes ---
+
+fs:SoftwareComponent
+    rdf:type owl:Class ; rdfs:label "Software Component".
+fs:APIService
+    rdf:type owl:Class ; rdfs:subClassOf fs:SoftwareComponent ; rdfs:label "API Service".
+fs:BackendService
+    rdf:type owl:Class ; rdfs:subClassOf fs:APIService ; rdfs:label "Backend Service".
+fs:FrontendApplication
+    rdf:type owl:Class ; rdfs:subClassOf fs:SoftwareComponent ; rdfs:label "Frontend Application".
+fs:DataService # Could be DB, Message Queue, Storage...
+    rdf:type owl:Class ; rdfs:subClassOf fs:SoftwareComponent ; rdfs:label "Data Service".
+fs:DatabaseService
+    rdf:type owl:Class ; rdfs:subClassOf fs:DataService ; rdfs:label "Database Service".
+fs:ObjectStorageService
+    rdf:type owl:Class ; rdfs:subClassOf fs:DataService ; rdfs:label "Object Storage Service".
+
+fs:APIEndpoint
+    rdf:type owl:Class ; rdfs:label "API Endpoint" ; rdfs:comment "A specific URL path and method within an API Service.".
+fs:ConfigurationElement
+    rdf:type owl:Class ; rdfs:label "Configuration Element" ; rdfs:comment "Represents a piece of configuration data or setting.".
+fs:EnvironmentVariable
+    rdf:type owl:Class ; rdfs:subClassOf fs:ConfigurationElement ; rdfs:label "Environment Variable".
+fs:ConfigFile
+    rdf:type owl:Class ; rdfs:subClassOf fs:ConfigurationElement ; rdfs:label "Configuration File".
+fs:Secret
+    rdf:type owl:Class ; rdfs:subClassOf fs:ConfigurationElement ; rdfs:label "Secret" ; rdfs:comment "Sensitive configuration data requiring special handling.".
+
+fs:DeploymentEnvironment
+    rdf:type owl:Class ; rdfs:label "Deployment Environment" ; rdfs:comment "Represents a target environment like Development, Staging, Production.".
+fs:DevelopmentEnvironment
+    rdf:type owl:Class ; rdfs:subClassOf fs:DeploymentEnvironment ; rdfs:label "Development Environment".
+fs:StagingEnvironment
+    rdf:type owl:Class ; rdfs:subClassOf fs:DeploymentEnvironment ; rdfs:label "Staging Environment".
+fs:ProductionEnvironment
+    rdf:type owl:Class ; rdfs:subClassOf fs:DeploymentEnvironment ; rdfs:label "Production Environment".
+
+fs:ContainerizationPlatform
+    rdf:type owl:Class ; rdfs:label "Containerization Platform" .
+fs:DockerPlatform
+    rdf:type owl:Class ; rdfs:subClassOf fs:ContainerizationPlatform ; rdfs:label "Docker Platform" .
+
+fs:CloudPlatform
+    rdf:type owl:Class ; rdfs:label "Cloud Platform".
+fs:DigitalOceanPlatform
+    rdf:type owl:Class ; rdfs:subClassOf fs:CloudPlatform ; rdfs:label "DigitalOcean Platform".
+
+
+# --- Individuals (Examples of core services) ---
+
+fs:FleetSightBackendService rdf:type fs:BackendService, owl:NamedIndividual ; rdfs:label "FleetSight Backend Service" .
+fs:FleetSightFrontendApp rdf:type fs:FrontendApplication, owl:NamedIndividual ; rdfs:label "FleetSight Frontend Application".
+fs:FleetSightSupabaseDB rdf:type fs:DatabaseService, owl:NamedIndividual ; rdfs:label "FleetSight Supabase Database".
+fs:FleetSightModelStorage rdf:type fs:ObjectStorageService, owl:NamedIndividual ; rdfs:label "FleetSight Supabase Model Storage".
+
+
+# --- Data Properties ---
+
+fs:endpointPath
+    rdf:type owl:DatatypeProperty ; rdfs:domain fs:APIEndpoint ; rdfs:range xsd:string ; rdfs:label "Endpoint Path" ; rdfs:comment "The relative URL path (e.g., '/transactions').".
+fs:httpMethod
+    rdf:type owl:DatatypeProperty ; rdfs:domain fs:APIEndpoint ; rdfs:range xsd:string ; rdfs:label "HTTP Method" ; rdfs:comment "GET, POST, PUT, DELETE, etc.".
+# Defining schemas rigorously often requires complex types or referencing external standards (OpenAPI)
+fs:requestBodySchemaReference
+    rdf:type owl:DatatypeProperty ; rdfs:domain fs:APIEndpoint ; rdfs:range xsd:string ; rdfs:label "Request Body Schema Reference" ; rdfs:comment "Reference to Pydantic model name or JSON Schema definition.".
+fs:responseBodySchemaReference
+    rdf:type owl:DatatypeProperty ; rdfs:domain fs:APIEndpoint ; rdfs:range xsd:string ; rdfs:label "Response Body Schema Reference".
+
+fs:databaseConnectionString # Note 🚫🔑 - avoid storing actual value here
+    rdf:type owl:DatatypeProperty ; rdfs:domain fs:DatabaseService ; rdfs:range xsd:string ; rdfs:label "Database Connection String Pattern" ; rdfs:comment "Pattern or reference name, NOT the actual connection string.".
+fs:databaseType
+    rdf:type owl:DatatypeProperty ; rdfs:domain fs:DatabaseService ; rdfs:range xsd:string ; rdfs:label "Database Type" ; rdfs:comment "e.g., 'PostgreSQL', 'Supabase'. " .
+
+fs:configKey
+    rdf:type owl:DatatypeProperty ; rdfs:domain fs:ConfigurationElement ; rdfs:range xsd:string ; rdfs:label "Configuration Key".
+fs:configValue # Again 🚫🔑
+    rdf:type owl:DatatypeProperty ; rdfs:domain fs:ConfigurationElement ; rdfs:range xsd:string ; rdfs:label "Configuration Value Pattern/Reference" ; rdfs:comment "Pattern or reference to where the value is stored, not the value itself for secrets.".
+fs:isSecret
+    rdf:type owl:DatatypeProperty ; rdfs:domain fs:ConfigurationElement ; rdfs:range xsd:boolean ; rdfs:label "Is Secret".
+
+fs:hostPlatform # Relates a component instance to its environment
+    rdf:type owl:DatatypeProperty ; rdfs:domain fs:SoftwareComponent ; rdfs:range xsd:anyURI ; rdfs:label "Host Platform" ; rdfs:comment "URI of the hosting platform (e.g., Droplet ID/IP)".
+
+
+# --- Object Properties ---
+
+fs:exposesEndpoint
+    rdf:type owl:ObjectProperty ; rdfs:domain fs:APIService ; rdfs:range fs:APIEndpoint ; rdfs:label "Exposes Endpoint".
+fs:consumesAPI
+    rdf:type owl:ObjectProperty ; rdfs:domain fs:SoftwareComponent ; rdfs:range fs:APIService ; rdfs:label "Consumes API" ; rdfs:comment "Indicates dependency, e.g., Frontend consumes Backend.".
+fs:interactsWithDataService
+    rdf:type owl:ObjectProperty ; rdfs:domain fs:SoftwareComponent ; rdfs:range fs:DataService ; rdfs:label "Interacts With Data Service".
+fs:readsFromDataService # More specific interactions
+    rdf:type owl:ObjectProperty ; rdfs:subPropertyOf fs:interactsWithDataService ; rdfs:domain fs:SoftwareComponent ; rdfs:range fs:DataService ; rdfs:label "Reads From Data Service".
+fs:writesToDataService
+    rdf:type owl:ObjectProperty ; rdfs:subPropertyOf fs:interactsWithDataService ; rdfs:domain fs:SoftwareComponent ; rdfs:range fs:DataService ; rdfs:label "Writes To Data Service".
+
+fs:endpointRequiresInputType
+    rdf:type owl:ObjectProperty ; rdfs:domain fs:APIEndpoint ; rdfs:range owl:Class ; rdfs:label "Endpoint Requires Input Type" ; rdfs:comment "Links endpoint to expected data input Class (e.g., core:FleetTransaction)".
+fs:endpointReturnsOutputType
+    rdf:type owl:ObjectProperty ; rdfs:domain fs:APIEndpoint ; rdfs:range owl:Class ; rdfs:label "Endpoint Returns Output Type" ; rdfs:comment "Links endpoint to returned data Class".
+
+fs:componentUsesConfiguration
+    rdf:type owl:ObjectProperty ; rdfs:domain fs:SoftwareComponent ; rdfs:range fs:ConfigurationElement ; rdfs:label "Component Uses Configuration".
+fs:componentUsesModel
+    rdf:type owl:ObjectProperty ; rdfs:domain fs:SoftwareComponent ; rdfs:range ml:MachineLearningModel ; rdfs:label "Component Uses Model".
+
+fs:deployedToEnvironment
+    rdf:type owl:ObjectProperty ; rdfs:domain fs:SoftwareComponent ; rdfs:range fs:DeploymentEnvironment ; rdfs:label "Deployed To Environment".
+fs:hostedOnPlatform
+    rdf:type owl:ObjectProperty ; rdfs:domain fs:SoftwareComponent ; rdfs:range fs:CloudPlatform ; # Or ContainerizationPlatform
+    rdfs:label "Hosted On Platform".
+##### owl/fleetsight-ui-ux.ttl #####
+@prefix :      <http://example.org/fleetsight#> .
+@prefix fs:    <http://example.org/fleetsight#> .
+@prefix owl:   <http://www.w3.org/2002/07/owl#> .
+@prefix rdf:   <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs:  <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd:   <http://www.w3.org/2001/XMLSchema#> .
+@prefix core:  <http://example.org/fleetsight-core-entities#> .
+@prefix anomaly: <http://example.org/fleetsight-anomaly#> .
+@prefix system: <http://example.org/fleetsight-system#> .
+@prefix users: <http://example.org/fleetsight-users#> .
+
+# Ontology Declaration
+<http://example.org/fleetsight-ui-ux>
+    rdf:type owl:Ontology ;
+    owl:imports <http://example.org/fleetsight-core-entities>,
+                <http://example.org/fleetsight-anomaly>,
+                <http://example.org/fleetsight-system>,
+                <http://example.org/fleetsight-users> ;
+    rdfs:label "FleetSight UI/UX Ontology" ;
+    rdfs:comment "Defines user interface components, states, actions, and their relationships within the FleetSight application." .
+
+# --- Classes ---
+
+fs:UIElement
+    rdf:type owl:Class ; rdfs:label "UI Element"; rdfs:comment "Base class for any visual component.".
+fs:PageComponent rdf:type owl:Class ; rdfs:subClassOf fs:UIElement ; rdfs:label "Page Component".
+fs:DashboardPage rdf:type owl:Class ; rdfs:subClassOf fs:PageComponent ; rdfs:label "Dashboard Page".
+fs:LoginPage rdf:type owl:Class ; rdfs:subClassOf fs:PageComponent ; rdfs:label "Login Page".
+
+fs:WidgetComponent rdf:type owl:Class ; rdfs:subClassOf fs:UIElement ; rdfs:label "Widget Component".
+fs:SummaryStatsWidget rdf:type owl:Class ; rdfs:subClassOf fs:WidgetComponent ; rdfs:label "Summary Stats Widget".
+fs:AnomalyTrendChartWidget rdf:type owl:Class ; rdfs:subClassOf fs:WidgetComponent ; rdfs:label "Anomaly Trend Chart Widget".
+
+fs:ListComponent rdf:type owl:Class ; rdfs:subClassOf fs:UIElement ; rdfs:label "List Component".
+fs:AnomalyListComponent rdf:type owl:Class ; rdfs:subClassOf fs:ListComponent ; rdfs:label "Anomaly List Component".
+
+fs:ItemComponent rdf:type owl:Class ; rdfs:subClassOf fs:UIElement ; rdfs:label "Item Component".
+fs:AnomalyCardComponent rdf:type owl:Class ; rdfs:subClassOf fs:ItemComponent ; rdfs:label "Anomaly Card Component". # shadcn Card based
+
+fs:ControlComponent rdf:type owl:Class ; rdfs:subClassOf fs:UIElement ; rdfs:label "Control Component".
+fs:ButtonComponent rdf:type owl:Class ; rdfs:subClassOf fs:ControlComponent ; rdfs:label "Button Component". # shadcn Button based
+fs:FeedbackButton rdf:type owl:Class ; rdfs:subClassOf fs:ButtonComponent ; rdfs:label "Feedback Button".
+fs:TableControlComponent rdf:type owl:Class ; rdfs:subClassOf fs:ControlComponent ; rdfs:label "Table Control Component". # e.g., Sort Headers, Filter Inputs
+fs:SortControl rdf:type owl:Class ; rdfs:subClassOf fs:TableControlComponent ; rdfs:label "Sort Control".
+fs:FilterControl rdf:type owl:Class ; rdfs:subClassOf fs:TableControlComponent ; rdfs:label "Filter Control".
+
+fs:ModalDialogComponent rdf:type owl:Class ; rdfs:subClassOf fs:UIElement ; rdfs:label "Modal Dialog Component". # shadcn Dialog
+fs:AnomalyDetailDialog rdf:type owl:Class ; rdfs:subClassOf fs:ModalDialogComponent ; rdfs:label "Anomaly Detail Dialog".
+
+fs:IconElement rdf:type owl:Class ; rdfs:subClassOf fs:UIElement ; rdfs:label "Icon Element". # Lucide Icons
+
+fs:UIState
+    rdf:type owl:Class ; rdfs:label "UI State"; rdfs:comment "Represents the state of a UI component or the application.".
+fs:InitialState rdf:type owl:Class ; rdfs:subClassOf fs:UIState ; rdfs:label "Initial State".
+fs:LoadingState rdf:type owl:Class ; rdfs:subClassOf fs:UIState ; rdfs:label "Loading State".
+fs:ErrorState rdf:type owl:Class ; rdfs:subClassOf fs:UIState ; rdfs:label "Error State".
+fs:ReadyState rdf:type owl:Class ; rdfs:subClassOf fs:UIState ; rdfs:label "Ready State"; rdfs:comment "Data loaded successfully.".
+fs:SubmittingState rdf:type owl:Class ; rdfs:subClassOf fs:UIState ; rdfs:label "Submitting State"; rdfs:comment "Waiting for API response after user action.".
+fs:SuccessState rdf:type owl:Class ; rdfs:subClassOf fs:UIState ; rdfs:label "Success State"; rdfs:comment "Action completed successfully.".
+
+fs:UserInteraction
+    rdf:type owl:Class ; rdfs:label "User Interaction"; rdfs:comment "An action performed by the user on a UI element.".
+fs:ClickInteraction rdf:type owl:Class ; rdfs:subClassOf fs:UserInteraction ; rdfs:label "Click Interaction".
+fs:SubmitFeedbackInteraction rdf:type owl:Class ; rdfs:subClassOf fs:ClickInteraction ; rdfs:label "Submit Feedback Interaction".
+fs:SortInteraction rdf:type owl:Class ; rdfs:subClassOf fs:ClickInteraction ; rdfs:label "Sort Interaction". # Clicking sort header
+fs:FilterInteraction rdf:type owl:Class ; rdfs:subClassOf fs:UserInteraction ; rdfs:label "Filter Interaction". # Changing filter value
+fs:NavigateInteraction rdf:type owl:Class ; rdfs:subClassOf fs:ClickInteraction ; rdfs:label "Navigate Interaction". # Changing pages
+
+# --- Data Properties ---
+
+fs:componentID rdf:type owl:DatatypeProperty ; rdfs:domain fs:UIElement ; rdfs:range xsd:string ; rdfs:label "Component ID" ; rdfs:comment "HTML ID or React Key if applicable.".
+fs:componentVariant rdf:type owl:DatatypeProperty ; rdfs:domain fs:UIElement ; rdfs:range xsd:string ; rdfs:label "Component Variant"; rdfs:comment "e.g., 'primary', 'destructive' for buttons from shadcn.".
+fs:componentLabelText rdf:type owl:DatatypeProperty ; rdfs:domain fs:UIElement ; rdfs:range xsd:string ; rdfs:label "Component Label Text".
+fs:iconName rdf:type owl:DatatypeProperty ; rdfs:domain fs:IconElement ; rdfs:range xsd:string ; rdfs:label "Icon Name" ; rdfs:comment "Name corresponding to Lucide icon library.".
+
+fs:stateMessage rdf:type owl:DatatypeProperty ; rdfs:domain fs:UIState ; rdfs:range xsd:string ; rdfs:label "State Message" ; rdfs:comment "Optional message associated with a state (e.g., error details).".
+
+# --- Object Properties ---
+
+fs:composedOf rdf:type owl:ObjectProperty ; rdfs:domain fs:UIElement ; rdfs:range fs:UIElement ; rdfs:label "Composed Of" ; rdfs:comment "Parent-child relationship (e.g., Page composedOf Widget).".
+fs:containsElement rdf:type owl:ObjectProperty ; owl:inverseOf fs:composedOf .
+
+fs:representsDataClass rdf:type owl:ObjectProperty ; rdfs:domain fs:UIElement ; rdfs:range owl:Class ; rdfs:label "Represents Data Class" ; rdfs:comment "Links UI component to the primary Ontology Class it displays/interacts with (e.g., AnomalyCardComponent representsDataClass anomaly:TransactionAnomaly).".
+
+fs:currentState rdf:type owl:ObjectProperty ; rdfs:domain fs:UIElement ; rdfs:range fs:UIState ; rdfs:label "Current State"; rdfs:comment "Indicates the current operational state of a component."; rdf:type owl:FunctionalProperty. # Assume one state at a time
+
+fs:canTransitionTo rdf:type owl:ObjectProperty ; rdfs:domain fs:UIState ; rdfs:range fs:UIState ; rdfs:label "Can Transition To" ; rdfs:comment "Possible state changes.".
+fs:interactionTriggersTransition rdf:type owl:ObjectProperty ; rdfs:domain fs:UserInteraction ; rdfs:range fs:UIState ; rdfs:label "Interaction Triggers Transition"; rdfs:comment "Which interaction causes a state change.".
+
+fs:triggeredByControl rdf:type owl:ObjectProperty ; rdfs:domain fs:UserInteraction ; rdfs:range fs:ControlComponent ; rdfs:label "Triggered By Control".
+fs:controlTriggersInteraction rdf:type owl:ObjectProperty ; owl:inverseOf fs:triggeredByControl .
+
+fs:interactionAffectsDataProperty rdf:type owl:ObjectProperty ; rdfs:domain fs:UserInteraction ; rdfs:range rdf:Property ; rdfs:label "Interaction Affects Data Property"; rdfs:comment "e.g., SubmitFeedbackInteraction affects anomaly:feedbackStatus.".
+fs:interactionInvokesAPIEndpoint rdf:type owl:ObjectProperty ; rdfs:domain fs:UserInteraction ; rdfs:range system:APIEndpoint ; rdfs:label "Interaction Invokes API Endpoint".
+
+```---
+
+**File 4: `owl/fleetsight-data-lineage.ttl`**
+
+```turtle
+@prefix :      <http://example.org/fleetsight#> .
+@prefix fs:    <http://example.org/fleetsight#> .
+@prefix owl:   <http://www.w3.org/2002/07/owl#> .
+@prefix rdf:   <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs:  <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd:   <http://www.w3.org/2001/XMLSchema#> .
+@prefix core:  <http://example.org/fleetsight-core-entities#> .
+@prefix ml:    <http://example.org/fleetsight-ml#> .
+@prefix system: <http://example.org/fleetsight-system#> .
+
+# Ontology Declaration
+<http://example.org/fleetsight-data-lineage>
+    rdf:type owl:Ontology ;
+    owl:imports <http://example.org/fleetsight-core-entities>,
+                <http://example.org/fleetsight-ml>,
+                <http://example.org/fleetsight-system> ;
+    rdfs:label "FleetSight Data Lineage Ontology" ;
+    rdfs:comment "Models the origin, flow, and transformation of data within the FleetSight system." .
+
+# --- Classes ---
+
+fs:DataSource
+    rdf:type owl:Class ; rdfs:label "Data Source"; rdfs:comment "Origin point of data entering the system.".
+fs:APIDataSource rdf:type owl:Class ; rdfs:subClassOf fs:DataSource ; rdfs:label "API Data Source".
+fs:ThirdPartyFuelCardAPI rdf:type owl:Class ; rdfs:subClassOf fs:APIDataSource ; rdfs:label "Third-Party Fuel Card API".
+fs:VehicleTelematicsAPI rdf:type owl:Class ; rdfs:subClassOf fs:APIDataSource ; rdfs:label "Vehicle Telematics API".
+fs:DatabaseSource rdf:type owl:Class ; rdfs:subClassOf fs:DataSource ; rdfs:label "Database Source". # For data originating from internal DBs
+fs:FileUploadSource rdf:type owl:Class ; rdfs:subClassOf fs:DataSource ; rdfs:label "File Upload Source". # Batch processing
+fs:UserInputSource rdf:type owl:Class ; rdfs:subClassOf fs:DataSource ; rdfs:label "User Input Source". # e.g., Manual corrections
+
+fs:Dataset
+    rdf:type owl:Class ; rdfs:label "Dataset"; rdfs:comment "A collection of data at a specific stage or representation.".
+fs:RawDataset rdf:type owl:Class ; rdfs:subClassOf fs:Dataset ; rdfs:label "Raw Dataset".
+fs:StagingDataset rdf:type owl:Class ; rdfs:subClassOf fs:Dataset ; rdfs:label "Staging Dataset". # After initial load, before processing
+fs:PreprocessedDataset rdf:type owl:Class ; rdfs:subClassOf fs:Dataset ; rdfs:label "Preprocessed Dataset".
+fs:FeatureDataset rdf:type owl:Class ; rdfs:subClassOf fs:Dataset ; rdfs:subClassOf ml:MLData ; rdfs:label "Feature Dataset".
+fs:TrainingDataset rdf:type owl:Class ; rdfs:subClassOf fs:FeatureDataset ; rdfs:subClassOf ml:TrainingDataset ; rdfs:label "Training Dataset". # Re-use from ml ontology? Maybe make fs: the primary. Let's reuse.
+fs:PredictionDataset rdf:type owl:Class ; rdfs:subClassOf fs:FeatureDataset ; rdfs:subClassOf ml:PredictionInput ; rdfs:label "Prediction Dataset".
+
+fs:DataTransformation
+    rdf:type owl:Class ; rdfs:label "Data Transformation"; rdfs:comment "Any process that modifies or generates data.".
+fs:IngestionStep rdf:type owl:Class ; rdfs:subClassOf fs:DataTransformation ; rdfs:label "Ingestion Step".
+fs:CleaningStep rdf:type owl:Class ; rdfs:subClassOf fs:DataTransformation ; rdfs:subClassOf ml:DataCleaningStep ; rdfs:label "Cleaning Step".
+fs:FeatureExtractionStep rdf:type owl:Class ; rdfs:subClassOf fs:DataTransformation ; rdfs:subClassOf ml:FeatureEngineeringStep ; rdfs:label "Feature Extraction Step".
+fs:AnonymizationStep rdf:type owl:Class ; rdfs:subClassOf fs:DataTransformation ; rdfs:label "Anonymization Step".
+fs:AggregationStep rdf:type owl:Class ; rdfs:subClassOf fs:DataTransformation ; rdfs:label "Aggregation Step".
+fs:ModelTrainingProcess rdf:type owl:Class ; rdfs:subClassOf fs:DataTransformation ; rdfs:subClassOf ml:ModelTrainingStep ; rdfs:label "Model Training Process".
+fs:ModelInferenceProcess rdf:type owl:Class ; rdfs:subClassOf fs:DataTransformation ; rdfs:subClassOf ml:ModelInferenceStep ; rdfs:label "Model Inference Process".
+
+# --- Data Properties ---
+
+fs:sourceName rdf:type owl:DatatypeProperty ; rdfs:domain fs:DataSource ; rdfs:range xsd:string ; rdfs:label "Source Name".
+fs:sourceURI rdf:type owl:DatatypeProperty ; rdfs:domain fs:APIDataSource ; rdfs:range xsd:anyURI ; rdfs:label "Source URI".
+fs:sourceDescription rdf:type owl:DatatypeProperty ; rdfs:domain fs:DataSource ; rdfs:range xsd:string ; rdfs:label "Source Description".
+
+fs:datasetSchema # Links dataset to the ontology class defining its structure
+    rdf:type owl:DatatypeProperty ; rdfs:domain fs:Dataset ; rdfs:range xsd:anyURI ; rdfs:label "Dataset Schema (Ontology Class URI)" . # Reference the URI of the owl:Class
+
+fs:datasetRecordCount rdf:type owl:DatatypeProperty ; rdfs:domain fs:Dataset ; rdfs:range xsd:integer ; rdfs:label "Dataset Record Count".
+fs:datasetCreationTimestamp rdf:type owl:DatatypeProperty ; rdfs:domain fs:Dataset ; rdfs:range xsd:dateTime ; rdfs:label "Dataset Creation Timestamp".
+
+fs:transformationDescription rdf:type owl:DatatypeProperty ; rdfs:domain fs:DataTransformation ; rdfs:range xsd:string ; rdfs:label "Transformation Description".
+fs:transformationParameters rdf:type owl:DatatypeProperty ; rdfs:domain fs:DataTransformation ; rdfs:range xsd:string ; rdfs:label "Transformation Parameters" ; rdfs:comment "e.g., JSON string describing parameters used.".
+
+# --- Object Properties ---
+
+# Connecting transformations and datasets
+fs:consumesDataset rdf:type owl:ObjectProperty ; rdfs:domain fs:DataTransformation ; rdfs:range fs:Dataset ; rdfs:label "Consumes Dataset".
+fs:producesDataset rdf:type owl:ObjectProperty ; rdfs:domain fs:DataTransformation ; rdfs:range fs:Dataset ; rdfs:label "Produces Dataset".
+
+# Connecting datasets back to origins or constituent parts
+fs:originatedFromSource rdf:type owl:ObjectProperty ; rdfs:domain fs:RawDataset ; rdfs:range fs:DataSource ; rdfs:label "Originated From Source".
+fs:derivedFromDataset rdf:type owl:ObjectProperty ; rdfs:domain fs:Dataset ; rdfs:range fs:Dataset ; rdfs:label "Derived From Dataset"; rdfs:comment "Links a transformed dataset to its input dataset(s).".
+fs:containsRecordOfType rdf:type owl:ObjectProperty ; rdfs:domain fs:Dataset ; rdfs:range owl:Class ; rdfs:label "Contains Record Of Type"; rdfs:comment "Indicates the primary entity type within the dataset (e.g., core:FleetTransaction)".
+
+# Linking ML processes
+fs:trainingProcessUsedDataset rdf:type owl:ObjectProperty ; rdfs:domain fs:ModelTrainingProcess ; rdfs:range ml:TrainingDataset ; rdfs:label "Training Process Used Dataset".
+fs:trainingProcessProducedModel rdf:type owl:ObjectProperty ; rdfs:domain fs:ModelTrainingProcess ; rdfs:range ml:MachineLearningModel ; rdfs:label "Training Process Produced Model".
+fs:inferenceProcessUsedModel rdf:type owl:ObjectProperty ; rdfs:domain fs:ModelInferenceProcess ; rdfs:range ml:MachineLearningModel ; rdfs:label "Inference Process Used Model".
+fs:inferenceProcessConsumedData rdf:type owl:ObjectProperty ; rdfs:domain fs:ModelInferenceProcess ; rdfs:range ml:PredictionInput ; rdfs:label "Inference Process Consumed Data".
+fs:inferenceProcessProducedResult rdf:type owl:ObjectProperty ; rdfs:domain fs:ModelInferenceProcess ; rdfs:range ml:PredictionResult ; rdfs:label "Inference Process Produced Result".
+
+# Optional: Linking steps in sequence for a pipeline concept
+fs:followsStep rdf:type owl:ObjectProperty ; rdfs:domain fs:DataTransformation ; rdfs:range fs:DataTransformation ; rdfs:label "Follows Step".
+fs:precedesStep rdf:type owl:ObjectProperty ; owl:inverseOf fs:followsStep .
+##### owl/fleetsight-users.ttl #####
+@prefix :      <http://example.org/fleetsight#> .
+@prefix fs:    <http://example.org/fleetsight#> .
+@prefix owl:   <http://www.w3.org/2002/07/owl#> .
+@prefix rdf:   <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs:  <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd:   <http://www.w3.org/2001/XMLSchema#> .
+@prefix core:  <http://example.org/fleetsight-core-entities#> .
+@prefix anomaly: <http://example.org/fleetsight-anomaly#> .
+
+# Ontology Declaration
+<http://example.org/fleetsight-users>
+    rdf:type owl:Ontology ;
+    owl:imports <http://example.org/fleetsight-core-entities>,
+                <http://example.org/fleetsight-anomaly> ;
+    rdfs:label "FleetSight Users Ontology" ;
+    rdfs:comment "Defines user roles and their relationship to core entities and anomalies." .
+
+# --- Classes ---
+
+fs:SystemUser
+    rdf:type owl:Class ; rdfs:label "System User" .
+fs:FleetManager
+    rdf:type owl:Class ; rdfs:subClassOf fs:SystemUser ; rdfs:label "Fleet Manager" ; rdfs:comment "Primary user interacting with the anomaly dashboard.".
+fs:Administrator
+    rdf:type owl:Class ; rdfs:subClassOf fs:SystemUser ; rdfs:label "Administrator" ; rdfs:comment "User responsible for system configuration and maintenance.".
+
+# --- Data Properties ---
+
+fs:userID
+    rdf:type owl:DatatypeProperty ; rdfs:domain fs:SystemUser ; rdfs:range xsd:string ; rdfs:label "User ID".
+fs:userEmail
+    rdf:type owl:DatatypeProperty ; rdfs:domain fs:SystemUser ; rdfs:range xsd:string ; rdfs:label "User Email".
+fs:userName
+    rdf:type owl:DatatypeProperty ; rdfs:domain fs:SystemUser ; rdfs:range xsd:string ; rdfs:label "User Name".
+fs:lastLoginTimestamp
+    rdf:type owl:DatatypeProperty ; rdfs:domain fs:SystemUser ; rdfs:range xsd:dateTime ; rdfs:label "Last Login Timestamp".
+
+# --- Object Properties ---
+
+fs:managesVehicle
+    rdf:type owl:ObjectProperty ; rdfs:domain fs:FleetManager ; rdfs:range core:Vehicle ; rdfs:label "Manages Vehicle".
+fs:managesDriver
+    rdf:type owl:ObjectProperty ; rdfs:domain fs:FleetManager ; rdfs:range core:Driver ; rdfs:label "Manages Driver".
+
+fs:reviewsAnomaly
+    rdf:type owl:ObjectProperty ;
+    rdfs:domain fs:FleetManager ;
+    rdfs:range anomaly:TransactionAnomaly ;
+    rdfs:label "Reviews Anomaly" ;
+    rdfs:comment "Indicates that a Fleet Manager has provided feedback for an anomaly.";
+    owl:inverseOf fs:reviewedByManager .
+
+fs:reviewedByManager
+    rdf:type owl:ObjectProperty ;
+    rdfs:domain anomaly:TransactionAnomaly ;
+    rdfs:range fs:FleetManager ;
+    rdfs:label "Reviewed By Manager";
+    # rdf:type owl:FunctionalProperty ; # Removed - history might involve multiple reviews/escalations? Revisit if needed.
+    owl:inverseOf fs:reviewsAnomaly .

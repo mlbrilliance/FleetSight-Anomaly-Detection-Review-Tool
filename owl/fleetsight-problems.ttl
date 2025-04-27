@@ -1,0 +1,95 @@
+@prefix :      <http://example.org/fleetsight#> .
+@prefix fs:    <http://example.org/fleetsight#> .
+@prefix owl:   <http://www.w3.org/2002/07/owl#> .
+@prefix rdf:   <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs:  <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd:   <http://www.w3.org/2001/XMLSchema#> .
+
+# Ontology Declaration
+<http://example.org/fleetsight-problems>
+    rdf:type owl:Ontology ;
+    # Import other ontologies if problems relate specifically to certain classes
+    owl:imports <http://example.org/fleetsight-core-entities>,
+                <http://example.org/fleetsight-anomaly>,
+                <http://example.org/fleetsight-ml>,
+                <http://example.org/fleetsight-system> ;
+    rdfs:label "FleetSight Problem Ontology" ;
+    rdfs:comment "Defines types of problems, risks, or issues relevant to the FleetSight system (as per SAPPO inspiration)." .
+
+# --- Classes (Using SAPPO-like structure) ---
+
+fs:SystemProblem
+    rdf:type owl:Class ; rdfs:label "System Problem" .
+
+# Data Related Problems
+fs:DataProblem
+    rdf:type owl:Class ; rdfs:subClassOf fs:SystemProblem ; rdfs:label "Data Problem".
+fs:DataQualityIssue
+    rdf:type owl:Class ; rdfs:subClassOf fs:DataProblem ; rdfs:label "Data Quality Issue".
+fs:MissingData
+    rdf:type owl:Class ; rdfs:subClassOf fs:DataQualityIssue ; rdfs:label "Missing Data".
+fs:IncorrectDataFormat
+    rdf:type owl:Class ; rdfs:subClassOf fs:DataQualityIssue ; rdfs:label "Incorrect Data Format".
+fs:DataOutlierIssue # Different from anomaly - more about data integrity
+    rdf:type owl:Class ; rdfs:subClassOf fs:DataQualityIssue ; rdfs:label "Data Outlier Issue".
+fs:DataVolumeIssue # e.g., Too much data for processing, too little for model
+    rdf:type owl:Class ; rdfs:subClassOf fs:DataProblem ; rdfs:label "Data Volume Issue".
+fs:DataFreshnessIssue
+    rdf:type owl:Class ; rdfs:subClassOf fs:DataProblem ; rdfs:label "Data Freshness Issue".
+
+# ML Related Problems
+fs:MLProblem
+    rdf:type owl:Class ; rdfs:subClassOf fs:SystemProblem ; rdfs:label "Machine Learning Problem".
+fs:ModelPerformanceIssue
+    rdf:type owl:Class ; rdfs:subClassOf fs:MLProblem ; rdfs:label "Model Performance Issue".
+fs:HighFalsePositiveRate
+    rdf:type owl:Class ; rdfs:subClassOf fs:ModelPerformanceIssue ; rdfs:label "High False Positive Rate".
+fs:HighFalseNegativeRate
+    rdf:type owl:Class ; rdfs:subClassOf fs:ModelPerformanceIssue ; rdfs:label "High False Negative Rate".
+fs:ModelStaleness
+    rdf:type owl:Class ; rdfs:subClassOf fs:MLProblem ; rdfs:label "Model Staleness" ; rdfs:comment "Model performance degraded due to data drift.".
+fs:DataDrift
+    rdf:type owl:Class ; rdfs:subClassOf fs:MLProblem ; rdfs:label "Data Drift"; rdfs:comment "Statistical properties of input data changing over time.".
+fs:ConceptDrift
+    rdf:type owl:Class ; rdfs:subClassOf fs:MLProblem ; rdfs:label "Concept Drift"; rdfs:comment "Relationship between input features and target variable changing over time.".
+
+# Security Related Problems
+fs:SecurityProblem
+    rdf:type owl:Class ; rdfs:subClassOf fs:SystemProblem ; rdfs:label "Security Problem".
+fs:PotentialFraud
+    rdf:type owl:Class ; rdfs:subClassOf fs:SecurityProblem ; rdfs:label "Potential Fraud"; rdfs:comment "Anomaly identified specifically suggesting fraudulent activity.".
+fs:DataExposure # E.g., PII leak via API
+    rdf:type owl:Class ; rdfs:subClassOf fs:SecurityProblem ; rdfs:label "Data Exposure".
+fs:UnauthorizedAccess
+    rdf:type owl:Class ; rdfs:subClassOf fs:SecurityProblem ; rdfs:label "Unauthorized Access".
+fs:InsecureConfiguration
+    rdf:type owl:Class ; rdfs:subClassOf fs:SecurityProblem ; rdfs:label "Insecure Configuration".
+
+# Operational/System Problems
+fs:OperationalProblem
+    rdf:type owl:Class ; rdfs:subClassOf fs:SystemProblem ; rdfs:label "Operational Problem".
+fs:ScalabilityBottleneck
+    rdf:type owl:Class ; rdfs:subClassOf fs:OperationalProblem ; rdfs:label "Scalability Bottleneck".
+fs:HighLatency
+    rdf:type owl:Class ; rdfs:subClassOf fs:OperationalProblem ; rdfs:label "High Latency".
+fs:PipelineFailure
+    rdf:type owl:Class ; rdfs:subClassOf fs:OperationalProblem ; rdfs:label "Pipeline Failure" ; rdfs:comment "A data or ML pipeline step failed.".
+fs:ResourceExhaustion
+    rdf:type owl:Class ; rdfs:subClassOf fs:OperationalProblem ; rdfs:label "Resource Exhaustion" ; rdfs:comment "CPU, Memory, Disk, Network limits reached.".
+
+# --- Object Properties (Relating problems to the system) ---
+
+fs:problemManifestsIn
+    rdf:type owl:ObjectProperty ; rdfs:domain fs:SystemProblem ; rdfs:range owl:Thing ; # Can affect anything
+    rdfs:label "Problem Manifests In" ; rdfs:comment "Links the problem to the component/data/model where it is observed.".
+
+fs:problemDetectedBy
+    rdf:type owl:ObjectProperty ; rdfs:domain fs:SystemProblem ; rdfs:range owl:Thing ; # Can be detected by monitoring, model eval, user report etc.
+    rdfs:label "Problem Detected By".
+
+fs:potentialMitigation
+    rdf:type owl:ObjectProperty ; rdfs:domain fs:SystemProblem ; rdfs:range owl:Thing ; # Mitigation could be a code change, config change, new model etc.
+    rdfs:label "Potential Mitigation".
+
+fs:causedBy # Could chain problems
+    rdf:type owl:ObjectProperty ; rdfs:domain fs:SystemProblem ; rdfs:range fs:SystemProblem ; rdfs:label "Caused By".

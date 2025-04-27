@@ -1,0 +1,255 @@
+@prefix :      <http://example.org/fleetsight#> .
+@prefix fs:    <http://example.org/fleetsight#> .
+@prefix owl:   <http://www.w3.org/2002/07/owl#> .
+@prefix rdf:   <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs:  <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd:   <http://www.w3.org/2001/XMLSchema#> .
+
+# Ontology Declaration
+<http://example.org/fleetsight-core-entities>
+    rdf:type owl:Ontology ;
+    rdfs:label "FleetSight Core Entities Ontology" ;
+    rdfs:comment "Defines the core real-world entities involved in fleet operations: Transactions, Vehicles, Drivers." .
+
+# --- Classes ---
+
+fs:FleetTransaction
+    rdf:type owl:Class ;
+    rdfs:label "Fleet Transaction" ;
+    rdfs:comment "Represents any recorded financial or operational event related to a fleet vehicle or driver." .
+
+fs:FuelTransaction
+    rdf:type owl:Class ;
+    rdfs:subClassOf fs:FleetTransaction ;
+    rdfs:label "Fuel Transaction" ;
+    rdfs:comment "A specific type of Fleet Transaction representing the purchase of fuel." .
+
+fs:MaintenanceTransaction
+    rdf:type owl:Class ;
+    rdfs:subClassOf fs:FleetTransaction ;
+    rdfs:label "Maintenance Transaction" ;
+    rdfs:comment "A specific type of Fleet Transaction representing vehicle maintenance or repair services." .
+
+fs:TollTransaction
+    rdf:type owl:Class ;
+    rdfs:subClassOf fs:FleetTransaction ;
+    rdfs:label "Toll Transaction" ;
+    rdfs:comment "A specific type of Fleet Transaction representing payment for road tolls." .
+
+# Further transaction subclasses could be added (e.g., ParkingTransaction, CleaningTransaction)
+
+fs:Vehicle
+    rdf:type owl:Class ;
+    rdfs:label "Vehicle" ;
+    rdfs:comment "Represents a vehicle within the managed fleet." .
+
+fs:Driver
+    rdf:type owl:Class ;
+    rdfs:label "Driver" ;
+    rdfs:comment "Represents a driver associated with the fleet." .
+
+# --- Data Properties ---
+
+# Common Transaction Properties
+fs:transactionID
+    rdf:type owl:DatatypeProperty ;
+    rdfs:label "Transaction ID" ;
+    rdfs:comment "Unique identifier for a transaction." ;
+    rdfs:domain fs:FleetTransaction ;
+    rdfs:range xsd:string .
+
+fs:timestamp
+    rdf:type owl:DatatypeProperty ;
+    rdfs:label "Timestamp" ;
+    rdfs:comment "Date and time when the transaction occurred (ISO 8601 format)." ;
+    rdfs:domain fs:FleetTransaction ;
+    rdfs:range xsd:dateTime .
+
+fs:amount
+    rdf:type owl:DatatypeProperty ;
+    rdfs:label "Amount" ;
+    rdfs:comment "The monetary value of the transaction." ;
+    rdfs:domain fs:FleetTransaction ;
+    rdfs:range xsd:decimal . # Use decimal for currency precision
+
+fs:currency
+    rdf:type owl:DatatypeProperty ;
+    rdfs:label "Currency" ;
+    rdfs:comment "Currency code (e.g., USD, EUR)." ;
+    rdfs:domain fs:FleetTransaction ;
+    rdfs:range xsd:string . # Consider restricting to ISO 4217 codes via constraints later
+
+fs:merchantName
+    rdf:type owl:DatatypeProperty ;
+    rdfs:label "Merchant Name" ;
+    rdfs:comment "Name of the merchant where the transaction occurred." ;
+    rdfs:domain fs:FleetTransaction ;
+    rdfs:range xsd:string .
+
+fs:merchantCategory
+    rdf:type owl:DatatypeProperty ;
+    rdfs:label "Merchant Category" ;
+    rdfs:comment "Category of the merchant (e.g., 'Fuel Station', 'Repair Shop', 'Toll Road Authority')." ;
+    rdfs:domain fs:FleetTransaction ;
+    rdfs:range xsd:string . # Could become a class if categories are complex/hierarchical
+
+fs:latitude
+    rdf:type owl:DatatypeProperty ;
+    rdfs:label "Latitude" ;
+    rdfs:comment "Geographic latitude of the transaction location." ;
+    rdfs:domain fs:FleetTransaction ;
+    rdfs:range xsd:decimal .
+
+fs:longitude
+    rdf:type owl:DatatypeProperty ;
+    rdfs:label "Longitude" ;
+    rdfs:comment "Geographic longitude of the transaction location." ;
+    rdfs:domain fs:FleetTransaction ;
+    rdfs:range xsd:decimal .
+
+# Fuel Specific Properties
+fs:fuelType
+    rdf:type owl:DatatypeProperty ;
+    rdfs:label "Fuel Type" ;
+    rdfs:comment "Type of fuel purchased (e.g., 'Gasoline', 'Diesel', 'Electric Charge')." ;
+    rdfs:domain fs:FuelTransaction ;
+    rdfs:range xsd:string .
+
+fs:fuelVolume
+    rdf:type owl:DatatypeProperty ;
+    rdfs:label "Fuel Volume" ;
+    rdfs:comment "Volume of fuel purchased (e.g., gallons, liters, kWh)." ;
+    rdfs:domain fs:FuelTransaction ;
+    rdfs:range xsd:decimal .
+
+fs:fuelVolumeUnit
+    rdf:type owl:DatatypeProperty ;
+    rdfs:label "Fuel Volume Unit" ;
+    rdfs:comment "Unit for the fuel volume (e.g., 'gallon', 'litre', 'kWh')." ;
+    rdfs:domain fs:FuelTransaction ;
+    rdfs:range xsd:string .
+
+# Maintenance Specific Properties
+fs:maintenanceType
+    rdf:type owl:DatatypeProperty ;
+    rdfs:label "Maintenance Type" ;
+    rdfs:comment "Description of maintenance performed (e.g., 'Oil Change', 'Tire Rotation', 'Brake Repair')." ;
+    rdfs:domain fs:MaintenanceTransaction ;
+    rdfs:range xsd:string .
+
+fs:odometerReading
+    rdf:type owl:DatatypeProperty ;
+    rdfs:label "Odometer Reading" ;
+    rdfs:comment "Vehicle odometer reading at the time of transaction/maintenance." ;
+    rdfs:domain fs:MaintenanceTransaction ; # Also potentially applicable to FuelTransaction
+    rdfs:range xsd:integer .
+
+# Vehicle Properties
+fs:vehicleID
+    rdf:type owl:DatatypeProperty ;
+    rdfs:label "Vehicle ID" ;
+    rdfs:comment "Unique identifier for the vehicle (e.g., VIN, internal ID)." ;
+    rdfs:domain fs:Vehicle ;
+    rdfs:range xsd:string .
+
+fs:vehicleMake
+    rdf:type owl:DatatypeProperty ;
+    rdfs:label "Vehicle Make" ;
+    rdfs:comment "Manufacturer of the vehicle (e.g., 'Ford', 'Toyota')." ;
+    rdfs:domain fs:Vehicle ;
+    rdfs:range xsd:string .
+
+fs:vehicleModel
+    rdf:type owl:DatatypeProperty ;
+    rdfs:label "Vehicle Model" ;
+    rdfs:comment "Model name of the vehicle (e.g., 'F-150', 'Camry')." ;
+    rdfs:domain fs:Vehicle ;
+    rdfs:range xsd:string .
+
+fs:vehicleYear
+    rdf:type owl:DatatypeProperty ;
+    rdfs:label "Vehicle Year" ;
+    rdfs:comment "Model year of the vehicle." ;
+    rdfs:domain fs:Vehicle ;
+    rdfs:range xsd:gYear .
+
+fs:vehicleType
+    rdf:type owl:DatatypeProperty ;
+    rdfs:label "Vehicle Type" ;
+    rdfs:comment "General classification of the vehicle (e.g., 'Sedan', 'Pickup Truck', 'Van', 'EV')." ;
+    rdfs:domain fs:Vehicle ;
+    rdfs:range xsd:string .
+
+fs:fuelCapacity
+    rdf:type owl:DatatypeProperty ;
+    rdfs:label "Fuel Capacity" ;
+    rdfs:comment "Vehicle's fuel tank capacity (or battery capacity for EVs)." ;
+    rdfs:domain fs:Vehicle ;
+    rdfs:range xsd:decimal .
+
+fs:fuelCapacityUnit
+    rdf:type owl:DatatypeProperty ;
+    rdfs:label "Fuel Capacity Unit" ;
+    rdfs:comment "Unit for fuel capacity." ;
+    rdfs:domain fs:Vehicle ;
+    rdfs:range xsd:string .
+
+# Driver Properties
+fs:driverID
+    rdf:type owl:DatatypeProperty ;
+    rdfs:label "Driver ID" ;
+    rdfs:comment "Unique identifier for the driver." ;
+    rdfs:domain fs:Driver ;
+    rdfs:range xsd:string .
+
+fs:driverName
+    rdf:type owl:DatatypeProperty ;
+    rdfs:label "Driver Name" ;
+    rdfs:comment "Full name of the driver." ;
+    rdfs:domain fs:Driver ;
+    rdfs:range xsd:string .
+
+fs:driverLicenseNumber # Example - Use with EXTREME CAUTION re: PII
+    rdf:type owl:DatatypeProperty ;
+    rdfs:label "Driver License Number" ;
+    rdfs:comment "Driver's license number (Note: PII implications)." ;
+    rdfs:domain fs:Driver ;
+    rdfs:range xsd:string .
+
+# --- Object Properties ---
+
+fs:transactionInvolvesVehicle
+    rdf:type owl:ObjectProperty ;
+    rdfs:label "Transaction Involves Vehicle" ;
+    rdfs:comment "Links a transaction to the specific vehicle involved." ;
+    rdfs:domain fs:FleetTransaction ;
+    rdfs:range fs:Vehicle .
+    # Could consider owl:FunctionalProperty if only one vehicle per transaction
+
+fs:transactionPerformedBy
+    rdf:type owl:ObjectProperty ;
+    rdfs:label "Transaction Performed By" ;
+    rdfs:comment "Links a transaction to the specific driver who performed it." ;
+    rdfs:domain fs:FleetTransaction ;
+    rdfs:range fs:Driver .
+
+# Define inverse properties for navigation convenience
+fs:vehicleInvolvedInTransaction
+    rdf:type owl:ObjectProperty ;
+    owl:inverseOf fs:transactionInvolvesVehicle .
+
+fs:driverPerformedTransaction
+    rdf:type owl:ObjectProperty ;
+    owl:inverseOf fs:transactionPerformedBy .
+
+# Define association between drivers and vehicles (potentially complex, e.g., time-bound)
+fs:assignedVehicle
+    rdf:type owl:ObjectProperty ;
+    rdfs:label "Assigned Vehicle" ;
+    rdfs:comment "Indicates a vehicle commonly assigned to a driver (simplistic view)." ;
+    rdfs:domain fs:Driver ;
+    rdfs:range fs:Vehicle .
+
+fs:driverAssignment # Might be better modelled as a separate 'Assignment' class if time-bound etc.
+    rdf:type owl:ObjectProperty ;
+    owl:inverseOf fs:assignedVehicle .

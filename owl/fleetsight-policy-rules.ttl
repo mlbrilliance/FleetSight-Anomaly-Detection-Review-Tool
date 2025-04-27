@@ -1,0 +1,116 @@
+@prefix :      <http://example.org/fleetsight#> .
+@prefix fs:    <http://example.org/fleetsight#> .
+@prefix owl:   <http://www.w3.org/2002/07/owl#> .
+@prefix rdf:   <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs:  <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd:   <http://www.w3.org/2001/XMLSchema#> .
+@prefix core:  <http://example.org/fleetsight-core-entities#> .
+@prefix anomaly: <http://example.org/fleetsight-anomaly#> .
+@prefix system: <http://example.org/fleetsight-system#> .
+@prefix users: <http://example.org/fleetsight-users#> .
+
+# Ontology Declaration
+<http://example.org/fleetsight-policy-rules>
+    rdf:type owl:Ontology ;
+    owl:imports <http://example.org/fleetsight-core-entities>,
+                <http://example.org/fleetsight-anomaly>,
+                <http://example.org/fleetsight-system>,
+                <http://example.org/fleetsight-users> ;
+    rdfs:label "FleetSight Policy and Rules Ontology" ;
+    rdfs:comment "Defines business rules, policies, conditions, and actions governing anomaly detection, alerting, and workflow." .
+
+# --- Classes ---
+
+fs:Policy
+    rdf:type owl:Class ;
+    rdfs:label "Policy" ;
+    rdfs:comment "A high-level guideline or set of rules governing system behavior or data handling." .
+fs:SpendingPolicy rdf:type owl:Class ; rdfs:subClassOf fs:Policy ; rdfs:label "Spending Policy".
+fs:AlertingPolicy rdf:type owl:Class ; rdfs:subClassOf fs:Policy ; rdfs:label "Alerting Policy".
+fs:DataHandlingPolicy rdf:type owl:Class ; rdfs:subClassOf fs:Policy ; rdfs:label "Data Handling Policy". # e.g., PII rules
+
+fs:RuleSet
+    rdf:type owl:Class ;
+    rdfs:label "Rule Set" ;
+    rdfs:comment "A collection of related rules often implementing a specific policy." .
+
+fs:Rule
+    rdf:type owl:Class ;
+    rdfs:label "Rule" ;
+    rdfs:comment "A specific condition-action pair defining system logic." .
+fs:AnomalyFlaggingRule rdf:type owl:Class ; rdfs:subClassOf fs:Rule ; rdfs:label "Anomaly Flagging Rule".
+fs:FeedbackHandlingRule rdf:type owl:Class ; rdfs:subClassOf fs:Rule ; rdfs:label "Feedback Handling Rule".
+fs:NotificationRule rdf:type owl:Class ; rdfs:subClassOf fs:Rule ; rdfs:label "Notification Rule".
+
+fs:Condition
+    rdf:type owl:Class ;
+    rdfs:label "Condition" ;
+    rdfs:comment "A logical predicate evaluated as part of a rule." .
+# Could be specialized further: e.g., ThresholdCondition, PatternCondition, SequenceCondition
+fs:LogicalCondition
+    rdf:type owl:Class ; rdfs:subClassOf fs:Condition ; rdfs:label "Logical Condition"; rdfs:comment "Combines multiple other conditions.".
+fs:AndCondition
+    rdf:type owl:Class ; rdfs:subClassOf fs:LogicalCondition ; rdfs:label "AND Condition".
+fs:OrCondition
+    rdf:type owl:Class ; rdfs:subClassOf fs:LogicalCondition ; rdfs:label "OR Condition".
+fs:NotCondition
+    rdf:type owl:Class ; rdfs:subClassOf fs:LogicalCondition ; rdfs:label "NOT Condition".
+
+fs:AttributeCondition
+    rdf:type owl:Class ; rdfs:subClassOf fs:Condition ; rdfs:label "Attribute Condition"; rdfs:comment "Evaluates a specific property of an entity.".
+
+fs:Action
+    rdf:type owl:Class ;
+    rdfs:label "Action" ;
+    rdfs:comment "An operation executed when a rule's conditions are met." .
+fs:CreateAnomalyAction rdf:type owl:Class ; rdfs:subClassOf fs:Action ; rdfs:label "Create Anomaly Action".
+fs:UpdateStatusAction rdf:type owl:Class ; rdfs:subClassOf fs:Action ; rdfs:label "Update Status Action".
+fs:NotifyUserAction rdf:type owl:Class ; rdfs:subClassOf fs:Action ; rdfs:label "Notify User Action".
+fs:InvokeServiceAction rdf:type owl:Class ; rdfs:subClassOf fs:Action ; rdfs:label "Invoke Service Action".
+
+fs:Threshold
+    rdf:type owl:Class ;
+    rdfs:label "Threshold" ;
+    rdfs:comment "A parameter value used within a rule condition." .
+
+# --- Data Properties ---
+
+fs:ruleID rdf:type owl:DatatypeProperty ; rdfs:domain fs:Rule ; rdfs:range xsd:string ; rdfs:label "Rule ID".
+fs:rulePriority rdf:type owl:DatatypeProperty ; rdfs:domain fs:Rule ; rdfs:range xsd:integer ; rdfs:label "Rule Priority"; rdfs:comment "Execution order hint.".
+fs:ruleDescription rdf:type owl:DatatypeProperty ; rdfs:domain fs:Rule ; rdfs:range xsd:string ; rdfs:label "Rule Description".
+fs:isActive rdf:type owl:DatatypeProperty ; rdfs:domain fs:Rule ; rdfs:range xsd:boolean ; rdfs:label "Is Active"; rdfs:comment "Whether the rule is currently enabled.".
+
+fs:conditionOperator rdf:type owl:DatatypeProperty ; rdfs:domain fs:AttributeCondition ; rdfs:range xsd:string ; rdfs:label "Condition Operator"; rdfs:comment "e.g., '>', '<=', 'equals', 'contains', 'within_polygon', 'not_in_set'." .
+fs:conditionValue rdf:type owl:DatatypeProperty ; rdfs:domain fs:AttributeCondition ; rdfs:range xsd:string ; rdfs:label "Condition Value" ; rdfs:comment "The value used in the condition comparison, needs type interpretation based on referenced property.".
+
+fs:thresholdValue rdf:type owl:DatatypeProperty ; rdfs:domain fs:Threshold ; rdfs:range xsd:string ; rdfs:label "Threshold Value"; rdfs:comment "Value associated with a Threshold object.".
+fs:thresholdUnit rdf:type owl:DatatypeProperty ; rdfs:domain fs:Threshold ; rdfs:range xsd:string ; rdfs:label "Threshold Unit"; rdfs:comment "Optional unit if the value is quantitative.".
+fs:thresholdName rdf:type owl:DatatypeProperty ; rdfs:domain fs:Threshold ; rdfs:range xsd:string ; rdfs:label "Threshold Name" ; rdfs:comment "Human-readable name/identifier for the threshold parameter.".
+
+fs:actionTargetDescription rdf:type owl:DatatypeProperty ; rdfs:domain fs:Action ; rdfs:range xsd:string ; rdfs:label "Action Target Description" ; rdfs:comment "Describes the target of the action (e.g., User group, API endpoint URL)".
+fs:notificationChannel rdf:type owl:DatatypeProperty ; rdfs:domain fs:NotifyUserAction ; rdfs:range xsd:string ; rdfs:label "Notification Channel" ; rdfs:comment "e.g., 'Email', 'SMS', 'Dashboard Alert'".
+fs:notificationTemplate rdf:type owl:DatatypeProperty ; rdfs:domain fs:NotifyUserAction ; rdfs:range xsd:string ; rdfs:label "Notification Template" ; rdfs:comment "Template for the message content.".
+
+# --- Object Properties ---
+
+fs:implementsPolicy rdf:type owl:ObjectProperty ; rdfs:domain fs:RuleSet ; rdfs:range fs:Policy ; rdfs:label "Implements Policy".
+fs:partOfRuleSet rdf:type owl:ObjectProperty ; rdfs:domain fs:Rule ; rdfs:range fs:RuleSet ; rdfs:label "Part Of Rule Set".
+fs:hasRule rdf:type owl:ObjectProperty ; owl:inverseOf fs:partOfRuleSet .
+
+fs:hasCondition rdf:type owl:ObjectProperty ; rdfs:domain fs:Rule ; rdfs:range fs:Condition ; rdfs:label "Has Condition".
+# For LogicalCondition grouping:
+fs:combinesCondition rdf:type owl:ObjectProperty ; rdfs:domain fs:LogicalCondition ; rdfs:range fs:Condition ; rdfs:label "Combines Condition".
+fs:negatesCondition rdf:type owl:ObjectProperty ; rdfs:domain fs:NotCondition ; rdfs:range fs:Condition ; rdf:type owl:FunctionalProperty ; rdfs:label "Negates Condition".
+
+fs:triggersAction rdf:type owl:ObjectProperty ; rdfs:domain fs:Rule ; rdfs:range fs:Action ; rdfs:label "Triggers Action".
+fs:conditionRefersToProperty rdf:type owl:ObjectProperty ; rdfs:domain fs:AttributeCondition ; rdfs:range rdf:Property ; rdfs:label "Condition Refers To Property" ; rdfs:comment "Links a condition check to a specific ontology property (e.g., core:amount).".
+fs:conditionUsesThreshold rdf:type owl:ObjectProperty ; rdfs:domain fs:AttributeCondition ; rdfs:range fs:Threshold ; rdfs:label "Condition Uses Threshold"; rdfs:comment "Links a condition to a defined Threshold object.".
+
+# Relating rules/conditions to the entities they apply to
+fs:appliesToClass rdf:type owl:ObjectProperty ; rdfs:domain fs:Rule ; rdfs:range owl:Class ; rdfs:label "Applies To Class" ; rdfs:comment "Specifies the type of entity this rule primarily operates on (e.g., core:FleetTransaction, anomaly:TransactionAnomaly)".
+
+# Linking actions to targets
+fs:actionUpdatesEntity rdf:type owl:ObjectProperty ; rdfs:domain fs:UpdateStatusAction ; rdfs:range owl:Thing ; rdfs:label "Action Updates Entity".
+fs:actionAffectsProperty rdf:type owl:ObjectProperty ; rdfs:domain fs:UpdateStatusAction ; rdfs:range rdf:Property ; rdfs:label "Action Affects Property".
+fs:actionNotifiesUserRole rdf:type owl:ObjectProperty ; rdfs:domain fs:NotifyUserAction ; rdfs:range users:SystemUser ; rdfs:label "Action Notifies User Role".
+fs:actionInvokesService rdf:type owl:ObjectProperty ; rdfs:domain fs:InvokeServiceAction ; rdfs:range system:APIService ; rdfs:label "Action Invokes Service".

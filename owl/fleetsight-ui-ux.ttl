@@ -1,0 +1,185 @@
+@prefix :      <http://example.org/fleetsight#> .
+@prefix fs:    <http://example.org/fleetsight#> .
+@prefix owl:   <http://www.w3.org/2002/07/owl#> .
+@prefix rdf:   <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs:  <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd:   <http://www.w3.org/2001/XMLSchema#> .
+@prefix core:  <http://example.org/fleetsight-core-entities#> .
+@prefix anomaly: <http://example.org/fleetsight-anomaly#> .
+@prefix system: <http://example.org/fleetsight-system#> .
+@prefix users: <http://example.org/fleetsight-users#> .
+
+# Ontology Declaration
+<http://example.org/fleetsight-ui-ux>
+    rdf:type owl:Ontology ;
+    owl:imports <http://example.org/fleetsight-core-entities>,
+                <http://example.org/fleetsight-anomaly>,
+                <http://example.org/fleetsight-system>,
+                <http://example.org/fleetsight-users> ;
+    rdfs:label "FleetSight UI/UX Ontology" ;
+    rdfs:comment "Defines user interface components, states, actions, and their relationships within the FleetSight application." .
+
+# --- Classes ---
+
+fs:UIElement
+    rdf:type owl:Class ; rdfs:label "UI Element"; rdfs:comment "Base class for any visual component.".
+fs:PageComponent rdf:type owl:Class ; rdfs:subClassOf fs:UIElement ; rdfs:label "Page Component".
+fs:DashboardPage rdf:type owl:Class ; rdfs:subClassOf fs:PageComponent ; rdfs:label "Dashboard Page".
+fs:LoginPage rdf:type owl:Class ; rdfs:subClassOf fs:PageComponent ; rdfs:label "Login Page".
+
+fs:WidgetComponent rdf:type owl:Class ; rdfs:subClassOf fs:UIElement ; rdfs:label "Widget Component".
+fs:SummaryStatsWidget rdf:type owl:Class ; rdfs:subClassOf fs:WidgetComponent ; rdfs:label "Summary Stats Widget".
+fs:AnomalyTrendChartWidget rdf:type owl:Class ; rdfs:subClassOf fs:WidgetComponent ; rdfs:label "Anomaly Trend Chart Widget".
+
+fs:ListComponent rdf:type owl:Class ; rdfs:subClassOf fs:UIElement ; rdfs:label "List Component".
+fs:AnomalyListComponent rdf:type owl:Class ; rdfs:subClassOf fs:ListComponent ; rdfs:label "Anomaly List Component".
+
+fs:ItemComponent rdf:type owl:Class ; rdfs:subClassOf fs:UIElement ; rdfs:label "Item Component".
+fs:AnomalyCardComponent rdf:type owl:Class ; rdfs:subClassOf fs:ItemComponent ; rdfs:label "Anomaly Card Component". # shadcn Card based
+
+fs:ControlComponent rdf:type owl:Class ; rdfs:subClassOf fs:UIElement ; rdfs:label "Control Component".
+fs:ButtonComponent rdf:type owl:Class ; rdfs:subClassOf fs:ControlComponent ; rdfs:label "Button Component". # shadcn Button based
+fs:FeedbackButton rdf:type owl:Class ; rdfs:subClassOf fs:ButtonComponent ; rdfs:label "Feedback Button".
+fs:TableControlComponent rdf:type owl:Class ; rdfs:subClassOf fs:ControlComponent ; rdfs:label "Table Control Component". # e.g., Sort Headers, Filter Inputs
+fs:SortControl rdf:type owl:Class ; rdfs:subClassOf fs:TableControlComponent ; rdfs:label "Sort Control".
+fs:FilterControl rdf:type owl:Class ; rdfs:subClassOf fs:TableControlComponent ; rdfs:label "Filter Control".
+
+fs:ModalDialogComponent rdf:type owl:Class ; rdfs:subClassOf fs:UIElement ; rdfs:label "Modal Dialog Component". # shadcn Dialog
+fs:AnomalyDetailDialog rdf:type owl:Class ; rdfs:subClassOf fs:ModalDialogComponent ; rdfs:label "Anomaly Detail Dialog".
+
+fs:IconElement rdf:type owl:Class ; rdfs:subClassOf fs:UIElement ; rdfs:label "Icon Element". # Lucide Icons
+
+fs:UIState
+    rdf:type owl:Class ; rdfs:label "UI State"; rdfs:comment "Represents the state of a UI component or the application.".
+fs:InitialState rdf:type owl:Class ; rdfs:subClassOf fs:UIState ; rdfs:label "Initial State".
+fs:LoadingState rdf:type owl:Class ; rdfs:subClassOf fs:UIState ; rdfs:label "Loading State".
+fs:ErrorState rdf:type owl:Class ; rdfs:subClassOf fs:UIState ; rdfs:label "Error State".
+fs:ReadyState rdf:type owl:Class ; rdfs:subClassOf fs:UIState ; rdfs:label "Ready State"; rdfs:comment "Data loaded successfully.".
+fs:SubmittingState rdf:type owl:Class ; rdfs:subClassOf fs:UIState ; rdfs:label "Submitting State"; rdfs:comment "Waiting for API response after user action.".
+fs:SuccessState rdf:type owl:Class ; rdfs:subClassOf fs:UIState ; rdfs:label "Success State"; rdfs:comment "Action completed successfully.".
+
+fs:UserInteraction
+    rdf:type owl:Class ; rdfs:label "User Interaction"; rdfs:comment "An action performed by the user on a UI element.".
+fs:ClickInteraction rdf:type owl:Class ; rdfs:subClassOf fs:UserInteraction ; rdfs:label "Click Interaction".
+fs:SubmitFeedbackInteraction rdf:type owl:Class ; rdfs:subClassOf fs:ClickInteraction ; rdfs:label "Submit Feedback Interaction".
+fs:SortInteraction rdf:type owl:Class ; rdfs:subClassOf fs:ClickInteraction ; rdfs:label "Sort Interaction". # Clicking sort header
+fs:FilterInteraction rdf:type owl:Class ; rdfs:subClassOf fs:UserInteraction ; rdfs:label "Filter Interaction". # Changing filter value
+fs:NavigateInteraction rdf:type owl:Class ; rdfs:subClassOf fs:ClickInteraction ; rdfs:label "Navigate Interaction". # Changing pages
+
+# --- Data Properties ---
+
+fs:componentID rdf:type owl:DatatypeProperty ; rdfs:domain fs:UIElement ; rdfs:range xsd:string ; rdfs:label "Component ID" ; rdfs:comment "HTML ID or React Key if applicable.".
+fs:componentVariant rdf:type owl:DatatypeProperty ; rdfs:domain fs:UIElement ; rdfs:range xsd:string ; rdfs:label "Component Variant"; rdfs:comment "e.g., 'primary', 'destructive' for buttons from shadcn.".
+fs:componentLabelText rdf:type owl:DatatypeProperty ; rdfs:domain fs:UIElement ; rdfs:range xsd:string ; rdfs:label "Component Label Text".
+fs:iconName rdf:type owl:DatatypeProperty ; rdfs:domain fs:IconElement ; rdfs:range xsd:string ; rdfs:label "Icon Name" ; rdfs:comment "Name corresponding to Lucide icon library.".
+
+fs:stateMessage rdf:type owl:DatatypeProperty ; rdfs:domain fs:UIState ; rdfs:range xsd:string ; rdfs:label "State Message" ; rdfs:comment "Optional message associated with a state (e.g., error details).".
+
+# --- Object Properties ---
+
+fs:composedOf rdf:type owl:ObjectProperty ; rdfs:domain fs:UIElement ; rdfs:range fs:UIElement ; rdfs:label "Composed Of" ; rdfs:comment "Parent-child relationship (e.g., Page composedOf Widget).".
+fs:containsElement rdf:type owl:ObjectProperty ; owl:inverseOf fs:composedOf .
+
+fs:representsDataClass rdf:type owl:ObjectProperty ; rdfs:domain fs:UIElement ; rdfs:range owl:Class ; rdfs:label "Represents Data Class" ; rdfs:comment "Links UI component to the primary Ontology Class it displays/interacts with (e.g., AnomalyCardComponent representsDataClass anomaly:TransactionAnomaly).".
+
+fs:currentState rdf:type owl:ObjectProperty ; rdfs:domain fs:UIElement ; rdfs:range fs:UIState ; rdfs:label "Current State"; rdfs:comment "Indicates the current operational state of a component."; rdf:type owl:FunctionalProperty. # Assume one state at a time
+
+fs:canTransitionTo rdf:type owl:ObjectProperty ; rdfs:domain fs:UIState ; rdfs:range fs:UIState ; rdfs:label "Can Transition To" ; rdfs:comment "Possible state changes.".
+fs:interactionTriggersTransition rdf:type owl:ObjectProperty ; rdfs:domain fs:UserInteraction ; rdfs:range fs:UIState ; rdfs:label "Interaction Triggers Transition"; rdfs:comment "Which interaction causes a state change.".
+
+fs:triggeredByControl rdf:type owl:ObjectProperty ; rdfs:domain fs:UserInteraction ; rdfs:range fs:ControlComponent ; rdfs:label "Triggered By Control".
+fs:controlTriggersInteraction rdf:type owl:ObjectProperty ; owl:inverseOf fs:triggeredByControl .
+
+fs:interactionAffectsDataProperty rdf:type owl:ObjectProperty ; rdfs:domain fs:UserInteraction ; rdfs:range rdf:Property ; rdfs:label "Interaction Affects Data Property"; rdfs:comment "e.g., SubmitFeedbackInteraction affects anomaly:feedbackStatus.".
+fs:interactionInvokesAPIEndpoint rdf:type owl:ObjectProperty ; rdfs:domain fs:UserInteraction ; rdfs:range system:APIEndpoint ; rdfs:label "Interaction Invokes API Endpoint".
+
+```---
+
+**File 4: `owl/fleetsight-data-lineage.ttl`**
+
+```turtle
+@prefix :      <http://example.org/fleetsight#> .
+@prefix fs:    <http://example.org/fleetsight#> .
+@prefix owl:   <http://www.w3.org/2002/07/owl#> .
+@prefix rdf:   <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs:  <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd:   <http://www.w3.org/2001/XMLSchema#> .
+@prefix core:  <http://example.org/fleetsight-core-entities#> .
+@prefix ml:    <http://example.org/fleetsight-ml#> .
+@prefix system: <http://example.org/fleetsight-system#> .
+
+# Ontology Declaration
+<http://example.org/fleetsight-data-lineage>
+    rdf:type owl:Ontology ;
+    owl:imports <http://example.org/fleetsight-core-entities>,
+                <http://example.org/fleetsight-ml>,
+                <http://example.org/fleetsight-system> ;
+    rdfs:label "FleetSight Data Lineage Ontology" ;
+    rdfs:comment "Models the origin, flow, and transformation of data within the FleetSight system." .
+
+# --- Classes ---
+
+fs:DataSource
+    rdf:type owl:Class ; rdfs:label "Data Source"; rdfs:comment "Origin point of data entering the system.".
+fs:APIDataSource rdf:type owl:Class ; rdfs:subClassOf fs:DataSource ; rdfs:label "API Data Source".
+fs:ThirdPartyFuelCardAPI rdf:type owl:Class ; rdfs:subClassOf fs:APIDataSource ; rdfs:label "Third-Party Fuel Card API".
+fs:VehicleTelematicsAPI rdf:type owl:Class ; rdfs:subClassOf fs:APIDataSource ; rdfs:label "Vehicle Telematics API".
+fs:DatabaseSource rdf:type owl:Class ; rdfs:subClassOf fs:DataSource ; rdfs:label "Database Source". # For data originating from internal DBs
+fs:FileUploadSource rdf:type owl:Class ; rdfs:subClassOf fs:DataSource ; rdfs:label "File Upload Source". # Batch processing
+fs:UserInputSource rdf:type owl:Class ; rdfs:subClassOf fs:DataSource ; rdfs:label "User Input Source". # e.g., Manual corrections
+
+fs:Dataset
+    rdf:type owl:Class ; rdfs:label "Dataset"; rdfs:comment "A collection of data at a specific stage or representation.".
+fs:RawDataset rdf:type owl:Class ; rdfs:subClassOf fs:Dataset ; rdfs:label "Raw Dataset".
+fs:StagingDataset rdf:type owl:Class ; rdfs:subClassOf fs:Dataset ; rdfs:label "Staging Dataset". # After initial load, before processing
+fs:PreprocessedDataset rdf:type owl:Class ; rdfs:subClassOf fs:Dataset ; rdfs:label "Preprocessed Dataset".
+fs:FeatureDataset rdf:type owl:Class ; rdfs:subClassOf fs:Dataset ; rdfs:subClassOf ml:MLData ; rdfs:label "Feature Dataset".
+fs:TrainingDataset rdf:type owl:Class ; rdfs:subClassOf fs:FeatureDataset ; rdfs:subClassOf ml:TrainingDataset ; rdfs:label "Training Dataset". # Re-use from ml ontology? Maybe make fs: the primary. Let's reuse.
+fs:PredictionDataset rdf:type owl:Class ; rdfs:subClassOf fs:FeatureDataset ; rdfs:subClassOf ml:PredictionInput ; rdfs:label "Prediction Dataset".
+
+fs:DataTransformation
+    rdf:type owl:Class ; rdfs:label "Data Transformation"; rdfs:comment "Any process that modifies or generates data.".
+fs:IngestionStep rdf:type owl:Class ; rdfs:subClassOf fs:DataTransformation ; rdfs:label "Ingestion Step".
+fs:CleaningStep rdf:type owl:Class ; rdfs:subClassOf fs:DataTransformation ; rdfs:subClassOf ml:DataCleaningStep ; rdfs:label "Cleaning Step".
+fs:FeatureExtractionStep rdf:type owl:Class ; rdfs:subClassOf fs:DataTransformation ; rdfs:subClassOf ml:FeatureEngineeringStep ; rdfs:label "Feature Extraction Step".
+fs:AnonymizationStep rdf:type owl:Class ; rdfs:subClassOf fs:DataTransformation ; rdfs:label "Anonymization Step".
+fs:AggregationStep rdf:type owl:Class ; rdfs:subClassOf fs:DataTransformation ; rdfs:label "Aggregation Step".
+fs:ModelTrainingProcess rdf:type owl:Class ; rdfs:subClassOf fs:DataTransformation ; rdfs:subClassOf ml:ModelTrainingStep ; rdfs:label "Model Training Process".
+fs:ModelInferenceProcess rdf:type owl:Class ; rdfs:subClassOf fs:DataTransformation ; rdfs:subClassOf ml:ModelInferenceStep ; rdfs:label "Model Inference Process".
+
+# --- Data Properties ---
+
+fs:sourceName rdf:type owl:DatatypeProperty ; rdfs:domain fs:DataSource ; rdfs:range xsd:string ; rdfs:label "Source Name".
+fs:sourceURI rdf:type owl:DatatypeProperty ; rdfs:domain fs:APIDataSource ; rdfs:range xsd:anyURI ; rdfs:label "Source URI".
+fs:sourceDescription rdf:type owl:DatatypeProperty ; rdfs:domain fs:DataSource ; rdfs:range xsd:string ; rdfs:label "Source Description".
+
+fs:datasetSchema # Links dataset to the ontology class defining its structure
+    rdf:type owl:DatatypeProperty ; rdfs:domain fs:Dataset ; rdfs:range xsd:anyURI ; rdfs:label "Dataset Schema (Ontology Class URI)" . # Reference the URI of the owl:Class
+
+fs:datasetRecordCount rdf:type owl:DatatypeProperty ; rdfs:domain fs:Dataset ; rdfs:range xsd:integer ; rdfs:label "Dataset Record Count".
+fs:datasetCreationTimestamp rdf:type owl:DatatypeProperty ; rdfs:domain fs:Dataset ; rdfs:range xsd:dateTime ; rdfs:label "Dataset Creation Timestamp".
+
+fs:transformationDescription rdf:type owl:DatatypeProperty ; rdfs:domain fs:DataTransformation ; rdfs:range xsd:string ; rdfs:label "Transformation Description".
+fs:transformationParameters rdf:type owl:DatatypeProperty ; rdfs:domain fs:DataTransformation ; rdfs:range xsd:string ; rdfs:label "Transformation Parameters" ; rdfs:comment "e.g., JSON string describing parameters used.".
+
+# --- Object Properties ---
+
+# Connecting transformations and datasets
+fs:consumesDataset rdf:type owl:ObjectProperty ; rdfs:domain fs:DataTransformation ; rdfs:range fs:Dataset ; rdfs:label "Consumes Dataset".
+fs:producesDataset rdf:type owl:ObjectProperty ; rdfs:domain fs:DataTransformation ; rdfs:range fs:Dataset ; rdfs:label "Produces Dataset".
+
+# Connecting datasets back to origins or constituent parts
+fs:originatedFromSource rdf:type owl:ObjectProperty ; rdfs:domain fs:RawDataset ; rdfs:range fs:DataSource ; rdfs:label "Originated From Source".
+fs:derivedFromDataset rdf:type owl:ObjectProperty ; rdfs:domain fs:Dataset ; rdfs:range fs:Dataset ; rdfs:label "Derived From Dataset"; rdfs:comment "Links a transformed dataset to its input dataset(s).".
+fs:containsRecordOfType rdf:type owl:ObjectProperty ; rdfs:domain fs:Dataset ; rdfs:range owl:Class ; rdfs:label "Contains Record Of Type"; rdfs:comment "Indicates the primary entity type within the dataset (e.g., core:FleetTransaction)".
+
+# Linking ML processes
+fs:trainingProcessUsedDataset rdf:type owl:ObjectProperty ; rdfs:domain fs:ModelTrainingProcess ; rdfs:range ml:TrainingDataset ; rdfs:label "Training Process Used Dataset".
+fs:trainingProcessProducedModel rdf:type owl:ObjectProperty ; rdfs:domain fs:ModelTrainingProcess ; rdfs:range ml:MachineLearningModel ; rdfs:label "Training Process Produced Model".
+fs:inferenceProcessUsedModel rdf:type owl:ObjectProperty ; rdfs:domain fs:ModelInferenceProcess ; rdfs:range ml:MachineLearningModel ; rdfs:label "Inference Process Used Model".
+fs:inferenceProcessConsumedData rdf:type owl:ObjectProperty ; rdfs:domain fs:ModelInferenceProcess ; rdfs:range ml:PredictionInput ; rdfs:label "Inference Process Consumed Data".
+fs:inferenceProcessProducedResult rdf:type owl:ObjectProperty ; rdfs:domain fs:ModelInferenceProcess ; rdfs:range ml:PredictionResult ; rdfs:label "Inference Process Produced Result".
+
+# Optional: Linking steps in sequence for a pipeline concept
+fs:followsStep rdf:type owl:ObjectProperty ; rdfs:domain fs:DataTransformation ; rdfs:range fs:DataTransformation ; rdfs:label "Follows Step".
+fs:precedesStep rdf:type owl:ObjectProperty ; owl:inverseOf fs:followsStep .

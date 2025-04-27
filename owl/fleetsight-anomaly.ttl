@@ -1,0 +1,148 @@
+@prefix :      <http://example.org/fleetsight#> .
+@prefix fs:    <http://example.org/fleetsight#> .
+@prefix owl:   <http://www.w3.org/2002/07/owl#> .
+@prefix rdf:   <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs:  <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd:   <http://www.w3.org/2001/XMLSchema#> .
+@prefix core:  <http://example.org/fleetsight-core-entities#> . # Alias for core
+
+# Ontology Declaration
+<http://example.org/fleetsight-anomaly>
+    rdf:type owl:Ontology ;
+    owl:imports <http://example.org/fleetsight-core-entities> ; # Import core types
+    rdfs:label "FleetSight Anomaly Ontology" ;
+    rdfs:comment "Defines concepts related to transaction anomalies and the feedback process." .
+
+# --- Classes ---
+
+fs:Alert
+    rdf:type owl:Class ;
+    rdfs:label "Alert" ;
+    rdfs:comment "A general class representing any system-generated notification requiring attention." .
+
+fs:TransactionAnomaly
+    rdf:type owl:Class ;
+    rdfs:subClassOf fs:Alert ;
+    rdfs:label "Transaction Anomaly" ;
+    rdfs:comment "A specific type of Alert indicating a potentially suspicious or unusual Fleet Transaction." .
+
+# Specific Anomaly Types (based on project description)
+fs:HighSpendAnomaly
+    rdf:type owl:Class ;
+    rdfs:subClassOf fs:TransactionAnomaly ;
+    rdfs:label "High Spend Anomaly" ;
+    rdfs:comment "Anomaly flagged due to significantly higher transaction amount compared to norms." .
+
+fs:LocationAnomaly
+    rdf:type owl:Class ;
+    rdfs:subClassOf fs:TransactionAnomaly ;
+    rdfs:label "Location Anomaly" ;
+    rdfs:comment "Anomaly flagged due to transaction location being unusual or far from expected routes/areas." .
+
+fs:FrequencyAnomaly
+    rdf:type owl:Class ;
+    rdfs:subClassOf fs:TransactionAnomaly ;
+    rdfs:label "Frequency Anomaly" ;
+    rdfs:comment "Anomaly flagged due to unusual frequency of transactions (e.g., too many fuel stops in short period)." .
+
+fs:TimeOfDayAnomaly
+    rdf:type owl:Class ;
+    rdfs:subClassOf fs:TransactionAnomaly ;
+    rdfs:label "Time Of Day Anomaly" ;
+    rdfs:comment "Anomaly flagged due to transaction occurring at an unusual time (e.g., late night fuel purchase)." .
+
+fs:FuelMetricAnomaly # Example if fuel metrics are considered
+    rdf:type owl:Class ;
+    rdfs:subClassOf fs:TransactionAnomaly ;
+    rdfs:label "Fuel Metric Anomaly" ;
+    rdfs:comment "Anomaly flagged due to impossible/unlikely fuel volume vs tank capacity or distance driven." .
+
+# Add other anomaly types as ML models evolve
+
+# Separate class for feedback to allow multiple feedback events potentially? No, keep simple for now. Attach to Anomaly.
+
+# --- Data Properties ---
+
+fs:anomalyID
+    rdf:type owl:DatatypeProperty ;
+    rdfs:label "Anomaly ID" ;
+    rdfs:comment "Unique identifier for a specific anomaly instance." ;
+    rdfs:domain fs:TransactionAnomaly ;
+    rdfs:range xsd:string .
+
+fs:isFlagged # Already defined implicitly by existence of an Anomaly instance relating to a Transaction
+
+fs:anomalyDetectionTimestamp
+    rdf:type owl:DatatypeProperty ;
+    rdfs:label "Anomaly Detection Timestamp" ;
+    rdfs:comment "Timestamp when the anomaly was first detected by the system." ;
+    rdfs:domain fs:TransactionAnomaly ;
+    rdfs:range xsd:dateTime .
+
+fs:anomalyReason
+    rdf:type owl:DatatypeProperty ;
+    rdfs:label "Anomaly Reason" ;
+    rdfs:comment "A human-readable string explaining why this transaction was flagged." ;
+    rdfs:domain fs:TransactionAnomaly ;
+    rdfs:range xsd:string .
+
+fs:anomalyScore # Optional depending on ML model
+    rdf:type owl:DatatypeProperty ;
+    rdfs:label "Anomaly Score" ;
+    rdfs:comment "A numerical score indicating the degree of anomalousness (model-dependent)." ;
+    rdfs:domain fs:TransactionAnomaly ;
+    rdfs:range xsd:float . # float is more common for ML scores than decimal
+
+fs:feedbackStatus
+    rdf:type owl:DatatypeProperty ;
+    rdfs:label "Feedback Status" ;
+    rdfs:comment "The status assigned by a fleet manager during review." ;
+    rdfs:domain fs:TransactionAnomaly ;
+    rdfs:range [
+        rdf:type rdfs:Datatype ;
+        owl:oneOf ( "Pending Review" "Okay" "Investigate" "Confirmed Fraud/Misuse" "Miscategorized" ) # Defined explicit values
+    ] ;
+    # Default value could potentially be set using SHACL or rules later
+    rdfs:comment "Initially 'Pending Review'." .
+
+fs:feedbackTimestamp
+    rdf:type owl:DatatypeProperty ;
+    rdfs:label "Feedback Timestamp" ;
+    rdfs:comment "Timestamp when the feedback was submitted." ;
+    rdfs:domain fs:TransactionAnomaly ;
+    rdfs:range xsd:dateTime .
+
+fs:feedbackNotes # Optional field for manager comments
+    rdf:type owl:DatatypeProperty ;
+    rdfs:label "Feedback Notes" ;
+    rdfs:comment "Optional textual notes provided by the reviewer." ;
+    rdfs:domain fs:TransactionAnomaly ;
+    rdfs:range xsd:string .
+
+fs:correctedGLCode # Optional field if re-categorization feedback exists
+    rdf:type owl:DatatypeProperty ;
+    rdfs:label "Corrected GL Code" ;
+    rdfs:comment "General Ledger code suggested by reviewer if transaction was miscategorized." ;
+    rdfs:domain fs:TransactionAnomaly ;
+    rdfs:range xsd:string .
+
+# --- Object Properties ---
+
+fs:anomalyRelatesToTransaction
+    rdf:type owl:ObjectProperty ;
+    rdfs:label "Anomaly Relates To Transaction" ;
+    rdfs:comment "Connects an anomaly instance to the specific transaction it flags." ;
+    rdfs:domain fs:TransactionAnomaly ;
+    rdfs:range core:FleetTransaction ; # Use prefix for imported ontology
+    owl:inverseOf core:transactionHasAnomaly ; # Define inverse in core? Better here. Let's add it here, assuming we can define inverse props pointing to other namespaces.
+    # This should probably be a functional property from the Anomaly side (one anomaly instance flags exactly one transaction)
+    rdf:type owl:FunctionalProperty .
+
+core:transactionHasAnomaly # Defined here to establish the inverse link clearly
+    rdf:type owl:ObjectProperty ;
+    rdfs:label "Transaction Has Anomaly" ;
+    rdfs:domain core:FleetTransaction ;
+    rdfs:range fs:TransactionAnomaly ;
+    owl:inverseOf fs:anomalyRelatesToTransaction . # Explicit inverse
+
+# Connection to users defined in fleetsight-users.ttl via fs:reviewedByManager

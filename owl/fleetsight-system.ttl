@@ -1,0 +1,131 @@
+@prefix :      <http://example.org/fleetsight#> .
+@prefix fs:    <http://example.org/fleetsight#> .
+@prefix owl:   <http://www.w3.org/2002/07/owl#> .
+@prefix rdf:   <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs:  <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd:   <http://www.w3.org/2001/XMLSchema#> .
+@prefix core:  <http://example.org/fleetsight-core-entities#> .
+@prefix anomaly: <http://example.org/fleetsight-anomaly#> .
+@prefix ml:    <http://example.org/fleetsight-ml#> .
+
+# Ontology Declaration
+<http://example.org/fleetsight-system>
+    rdf:type owl:Ontology ;
+    owl:imports <http://example.org/fleetsight-core-entities>,
+                <http://example.org/fleetsight-anomaly>,
+                <http://example.org/fleetsight-ml> ;
+    rdfs:label "FleetSight System & Infrastructure Ontology" ;
+    rdfs:comment "Defines software components, APIs, databases, and deployment concepts." .
+
+# --- Classes ---
+
+fs:SoftwareComponent
+    rdf:type owl:Class ; rdfs:label "Software Component".
+fs:APIService
+    rdf:type owl:Class ; rdfs:subClassOf fs:SoftwareComponent ; rdfs:label "API Service".
+fs:BackendService
+    rdf:type owl:Class ; rdfs:subClassOf fs:APIService ; rdfs:label "Backend Service".
+fs:FrontendApplication
+    rdf:type owl:Class ; rdfs:subClassOf fs:SoftwareComponent ; rdfs:label "Frontend Application".
+fs:DataService # Could be DB, Message Queue, Storage...
+    rdf:type owl:Class ; rdfs:subClassOf fs:SoftwareComponent ; rdfs:label "Data Service".
+fs:DatabaseService
+    rdf:type owl:Class ; rdfs:subClassOf fs:DataService ; rdfs:label "Database Service".
+fs:ObjectStorageService
+    rdf:type owl:Class ; rdfs:subClassOf fs:DataService ; rdfs:label "Object Storage Service".
+
+fs:APIEndpoint
+    rdf:type owl:Class ; rdfs:label "API Endpoint" ; rdfs:comment "A specific URL path and method within an API Service.".
+fs:ConfigurationElement
+    rdf:type owl:Class ; rdfs:label "Configuration Element" ; rdfs:comment "Represents a piece of configuration data or setting.".
+fs:EnvironmentVariable
+    rdf:type owl:Class ; rdfs:subClassOf fs:ConfigurationElement ; rdfs:label "Environment Variable".
+fs:ConfigFile
+    rdf:type owl:Class ; rdfs:subClassOf fs:ConfigurationElement ; rdfs:label "Configuration File".
+fs:Secret
+    rdf:type owl:Class ; rdfs:subClassOf fs:ConfigurationElement ; rdfs:label "Secret" ; rdfs:comment "Sensitive configuration data requiring special handling.".
+
+fs:DeploymentEnvironment
+    rdf:type owl:Class ; rdfs:label "Deployment Environment" ; rdfs:comment "Represents a target environment like Development, Staging, Production.".
+fs:DevelopmentEnvironment
+    rdf:type owl:Class ; rdfs:subClassOf fs:DeploymentEnvironment ; rdfs:label "Development Environment".
+fs:StagingEnvironment
+    rdf:type owl:Class ; rdfs:subClassOf fs:DeploymentEnvironment ; rdfs:label "Staging Environment".
+fs:ProductionEnvironment
+    rdf:type owl:Class ; rdfs:subClassOf fs:DeploymentEnvironment ; rdfs:label "Production Environment".
+
+fs:ContainerizationPlatform
+    rdf:type owl:Class ; rdfs:label "Containerization Platform" .
+fs:DockerPlatform
+    rdf:type owl:Class ; rdfs:subClassOf fs:ContainerizationPlatform ; rdfs:label "Docker Platform" .
+
+fs:CloudPlatform
+    rdf:type owl:Class ; rdfs:label "Cloud Platform".
+fs:DigitalOceanPlatform
+    rdf:type owl:Class ; rdfs:subClassOf fs:CloudPlatform ; rdfs:label "DigitalOcean Platform".
+
+
+# --- Individuals (Examples of core services) ---
+
+fs:FleetSightBackendService rdf:type fs:BackendService, owl:NamedIndividual ; rdfs:label "FleetSight Backend Service" .
+fs:FleetSightFrontendApp rdf:type fs:FrontendApplication, owl:NamedIndividual ; rdfs:label "FleetSight Frontend Application".
+fs:FleetSightSupabaseDB rdf:type fs:DatabaseService, owl:NamedIndividual ; rdfs:label "FleetSight Supabase Database".
+fs:FleetSightModelStorage rdf:type fs:ObjectStorageService, owl:NamedIndividual ; rdfs:label "FleetSight Supabase Model Storage".
+
+
+# --- Data Properties ---
+
+fs:endpointPath
+    rdf:type owl:DatatypeProperty ; rdfs:domain fs:APIEndpoint ; rdfs:range xsd:string ; rdfs:label "Endpoint Path" ; rdfs:comment "The relative URL path (e.g., '/transactions').".
+fs:httpMethod
+    rdf:type owl:DatatypeProperty ; rdfs:domain fs:APIEndpoint ; rdfs:range xsd:string ; rdfs:label "HTTP Method" ; rdfs:comment "GET, POST, PUT, DELETE, etc.".
+# Defining schemas rigorously often requires complex types or referencing external standards (OpenAPI)
+fs:requestBodySchemaReference
+    rdf:type owl:DatatypeProperty ; rdfs:domain fs:APIEndpoint ; rdfs:range xsd:string ; rdfs:label "Request Body Schema Reference" ; rdfs:comment "Reference to Pydantic model name or JSON Schema definition.".
+fs:responseBodySchemaReference
+    rdf:type owl:DatatypeProperty ; rdfs:domain fs:APIEndpoint ; rdfs:range xsd:string ; rdfs:label "Response Body Schema Reference".
+
+fs:databaseConnectionString # Note 🚫🔑 - avoid storing actual value here
+    rdf:type owl:DatatypeProperty ; rdfs:domain fs:DatabaseService ; rdfs:range xsd:string ; rdfs:label "Database Connection String Pattern" ; rdfs:comment "Pattern or reference name, NOT the actual connection string.".
+fs:databaseType
+    rdf:type owl:DatatypeProperty ; rdfs:domain fs:DatabaseService ; rdfs:range xsd:string ; rdfs:label "Database Type" ; rdfs:comment "e.g., 'PostgreSQL', 'Supabase'. " .
+
+fs:configKey
+    rdf:type owl:DatatypeProperty ; rdfs:domain fs:ConfigurationElement ; rdfs:range xsd:string ; rdfs:label "Configuration Key".
+fs:configValue # Again 🚫🔑
+    rdf:type owl:DatatypeProperty ; rdfs:domain fs:ConfigurationElement ; rdfs:range xsd:string ; rdfs:label "Configuration Value Pattern/Reference" ; rdfs:comment "Pattern or reference to where the value is stored, not the value itself for secrets.".
+fs:isSecret
+    rdf:type owl:DatatypeProperty ; rdfs:domain fs:ConfigurationElement ; rdfs:range xsd:boolean ; rdfs:label "Is Secret".
+
+fs:hostPlatform # Relates a component instance to its environment
+    rdf:type owl:DatatypeProperty ; rdfs:domain fs:SoftwareComponent ; rdfs:range xsd:anyURI ; rdfs:label "Host Platform" ; rdfs:comment "URI of the hosting platform (e.g., Droplet ID/IP)".
+
+
+# --- Object Properties ---
+
+fs:exposesEndpoint
+    rdf:type owl:ObjectProperty ; rdfs:domain fs:APIService ; rdfs:range fs:APIEndpoint ; rdfs:label "Exposes Endpoint".
+fs:consumesAPI
+    rdf:type owl:ObjectProperty ; rdfs:domain fs:SoftwareComponent ; rdfs:range fs:APIService ; rdfs:label "Consumes API" ; rdfs:comment "Indicates dependency, e.g., Frontend consumes Backend.".
+fs:interactsWithDataService
+    rdf:type owl:ObjectProperty ; rdfs:domain fs:SoftwareComponent ; rdfs:range fs:DataService ; rdfs:label "Interacts With Data Service".
+fs:readsFromDataService # More specific interactions
+    rdf:type owl:ObjectProperty ; rdfs:subPropertyOf fs:interactsWithDataService ; rdfs:domain fs:SoftwareComponent ; rdfs:range fs:DataService ; rdfs:label "Reads From Data Service".
+fs:writesToDataService
+    rdf:type owl:ObjectProperty ; rdfs:subPropertyOf fs:interactsWithDataService ; rdfs:domain fs:SoftwareComponent ; rdfs:range fs:DataService ; rdfs:label "Writes To Data Service".
+
+fs:endpointRequiresInputType
+    rdf:type owl:ObjectProperty ; rdfs:domain fs:APIEndpoint ; rdfs:range owl:Class ; rdfs:label "Endpoint Requires Input Type" ; rdfs:comment "Links endpoint to expected data input Class (e.g., core:FleetTransaction)".
+fs:endpointReturnsOutputType
+    rdf:type owl:ObjectProperty ; rdfs:domain fs:APIEndpoint ; rdfs:range owl:Class ; rdfs:label "Endpoint Returns Output Type" ; rdfs:comment "Links endpoint to returned data Class".
+
+fs:componentUsesConfiguration
+    rdf:type owl:ObjectProperty ; rdfs:domain fs:SoftwareComponent ; rdfs:range fs:ConfigurationElement ; rdfs:label "Component Uses Configuration".
+fs:componentUsesModel
+    rdf:type owl:ObjectProperty ; rdfs:domain fs:SoftwareComponent ; rdfs:range ml:MachineLearningModel ; rdfs:label "Component Uses Model".
+
+fs:deployedToEnvironment
+    rdf:type owl:ObjectProperty ; rdfs:domain fs:SoftwareComponent ; rdfs:range fs:DeploymentEnvironment ; rdfs:label "Deployed To Environment".
+fs:hostedOnPlatform
+    rdf:type owl:ObjectProperty ; rdfs:domain fs:SoftwareComponent ; rdfs:range fs:CloudPlatform ; # Or ContainerizationPlatform
+    rdfs:label "Hosted On Platform".

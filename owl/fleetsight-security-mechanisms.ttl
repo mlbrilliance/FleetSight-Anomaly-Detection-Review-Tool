@@ -1,0 +1,108 @@
+@prefix :      <http://example.org/fleetsight#> .
+@prefix fs:    <http://example.org/fleetsight#> .
+@prefix owl:   <http://www.w3.org/2002/07/owl#> .
+@prefix rdf:   <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs:  <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd:   <http://www.w3.org/2001/XMLSchema#> .
+@prefix system: <http://example.org/fleetsight-system#> .
+@prefix users: <http://example.org/fleetsight-users#> .
+@prefix problems: <http://example.org/fleetsight-problems#> . # Link to problem types
+
+# Ontology Declaration
+<http://example.org/fleetsight-security-mechanisms>
+    rdf:type owl:Ontology ;
+    owl:imports <http://example.org/fleetsight-system>,
+                <http://example.org/fleetsight-users>,
+                <http://example.org/fleetsight-problems> ;
+    rdfs:label "FleetSight Security Mechanisms Ontology" ;
+    rdfs:comment "Defines specific security controls, policies, authentication, authorization, and data protection mechanisms." .
+
+# --- Classes ---
+
+fs:SecurityMechanism
+    rdf:type owl:Class ; rdfs:label "Security Mechanism"; rdfs:comment "Any component or process providing a security function.".
+
+fs:AuthenticationMechanism
+    rdf:type owl:Class ; rdfs:subClassOf fs:SecurityMechanism ; rdfs:label "Authentication Mechanism".
+fs:OAuth2Flow rdf:type owl:Class ; rdfs:subClassOf fs:AuthenticationMechanism ; rdfs:label "OAuth 2.0 Flow".
+fs:JWTValidation rdf:type owl:Class ; rdfs:subClassOf fs:AuthenticationMechanism ; rdfs:label "JWT Validation".
+fs:APIKeyCheck rdf:type owl:Class ; rdfs:subClassOf fs:AuthenticationMechanism ; rdfs:label "API Key Check".
+fs:PasswordAuth rdf:type owl:Class ; rdfs:subClassOf fs:AuthenticationMechanism ; rdfs:label "Password Authentication". # Likely for UI login
+
+fs:AuthorizationMechanism
+    rdf:type owl:Class ; rdfs:subClassOf fs:SecurityMechanism ; rdfs:label "Authorization Mechanism".
+fs:RoleBasedAccessControl (RBAC)
+    rdf:type owl:Class ; rdfs:subClassOf fs:AuthorizationMechanism ; rdfs:label "Role-Based Access Control (RBAC)".
+fs:AttributeBasedAccessControl (ABAC)
+    rdf:type owl:Class ; rdfs:subClassOf fs:AuthorizationMechanism ; rdfs:label "Attribute-Based Access Control (ABAC)".
+
+fs:EncryptionMechanism
+    rdf:type owl:Class ; rdfs:subClassOf fs:SecurityMechanism ; rdfs:label "Encryption Mechanism".
+fs:EncryptionAtRest rdf:type owl:Class ; rdfs:subClassOf fs:EncryptionMechanism ; rdfs:label "Encryption At Rest".
+fs:EncryptionInTransit rdf:type owl:Class ; rdfs:subClassOf fs:EncryptionMechanism ; rdfs:label "Encryption In Transit".
+fs:TLS rdf:type owl:Class ; rdfs:subClassOf fs:EncryptionInTransit ; rdfs:label "Transport Layer Security (TLS)".
+fs:AESEncryption rdf:type owl:Class ; rdfs:subClassOf fs:EncryptionAtRest ; rdfs:label "AES Encryption".
+
+fs:LoggingMechanism
+    rdf:type owl:Class ; rdfs:subClassOf fs:SecurityMechanism ; rdfs:label "Logging Mechanism".
+fs:AuditTrailLogging rdf:type owl:Class ; rdfs:subClassOf fs:LoggingMechanism ; rdfs:label "Audit Trail Logging".
+fs:SecurityEventLogging rdf:type owl:Class ; rdfs:subClassOf fs:LoggingMechanism ; rdfs:label "Security Event Logging".
+
+fs:InputValidationMechanism
+    rdf:type owl:Class ; rdfs:subClassOf fs:SecurityMechanism ; rdfs:label "Input Validation Mechanism".
+fs:SchemaValidation (Pydantic) rdf:type owl:Class ; rdfs:subClassOf fs:InputValidationMechanism ; rdfs:label "Schema Validation (Pydantic)".
+fs:SanitizationMechanism rdf:type owl:Class ; rdfs:subClassOf fs:InputValidationMechanism ; rdfs:label "Sanitization Mechanism".
+
+fs:SecurityPolicy # More concrete than the Policy Rule one, relates to Mechanisms
+    rdf:type owl:Class ; rdfs:subClassOf policy-rules:Policy ; rdfs:label "Security Policy".
+fs:AccessControlPolicy rdf:type owl:Class ; rdfs:subClassOf fs:SecurityPolicy ; rdfs:label "Access Control Policy".
+fs:DataRetentionPolicy rdf:type owl:Class ; rdfs:subClassOf fs:SecurityPolicy ; rdfs:label "Data Retention Policy".
+
+fs:Permission
+    rdf:type owl:Class ; rdfs:label "Permission"; rdfs:comment "Defines the ability to perform an action on a resource.".
+fs:ReadPermission rdf:type owl:Class ; rdfs:subClassOf fs:Permission ; rdfs:label "Read Permission".
+fs:WritePermission rdf:type owl:Class ; rdfs:subClassOf fs:Permission ; rdfs:label "Write Permission".
+fs:CreatePermission rdf:type owl:Class ; rdfs:subClassOf fs:Permission ; rdfs:label "Create Permission".
+fs:DeletePermission rdf:type owl:Class ; rdfs:subClassOf fs:Permission ; rdfs:label "Delete Permission".
+fs:ReviewFeedbackPermission rdf:type owl:Class ; rdfs:subClassOf fs:Permission ; rdfs:label "Review Feedback Permission".
+
+fs:Resource # The target of permissions
+    rdf:type owl:Class ; rdfs:label "Resource" .
+# Can link this back to system components, API endpoints, or data classes defined in other ontologies
+
+# --- Data Properties ---
+
+fs:authProviderURI rdf:type owl:DatatypeProperty ; rdfs:domain fs:OAuth2Flow ; rdfs:range xsd:anyURI ; rdfs:label "Auth Provider URI".
+fs:jwtExpectedIssuer rdf:type owl:DatatypeProperty ; rdfs:domain fs:JWTValidation ; rdfs:range xsd:string ; rdfs:label "JWT Expected Issuer".
+fs:apiKeyStorageMechanism rdf:type owl:DatatypeProperty ; rdfs:domain fs:APIKeyCheck ; rdfs:range xsd:string ; rdfs:label "API Key Storage Mechanism"; rdfs:comment "e.g., 'HTTP Header X-API-KEY', 'Query Param api_key'".
+
+fs:permissionAction rdf:type owl:DatatypeProperty ; rdfs:domain fs:Permission ; rdfs:range xsd:string ; rdfs:label "Permission Action"; rdfs:comment "e.g., 'GET', 'POST', 'UPDATE', 'view_dashboard'".
+fs:resourceIdentifierPattern rdf:type owl:DatatypeProperty ; rdfs:domain fs:Permission ; rdfs:range xsd:string ; rdfs:label "Resource Identifier Pattern"; rdfs:comment "e.g., '/anomalies/*', '/vehicles/{id}'".
+
+fs:tlsVersion rdf:type owl:DatatypeProperty ; rdfs:domain fs:TLS ; rdfs:range xsd:string ; rdfs:label "TLS Version"; rdfs:comment "e.g., '1.2', '1.3'".
+fs:encryptionAlgorithm rdf:type owl:DatatypeProperty ; rdfs:domain fs:EncryptionMechanism ; rdfs:range xsd:string ; rdfs:label "Encryption Algorithm"; rdfs:comment "e.g., 'AES-256-GCM'".
+fs:encryptionKeyLength rdf:type owl:DatatypeProperty ; rdfs:domain fs:EncryptionMechanism ; rdfs:range xsd:integer ; rdfs:label "Encryption Key Length".
+
+fs:logRetentionPeriod rdf:type owl:DatatypeProperty ; rdfs:domain fs:LoggingMechanism ; rdfs:range xsd:duration ; rdfs:label "Log Retention Period".
+
+# --- Object Properties ---
+
+fs:implementsMechanism rdf:type owl:ObjectProperty ; rdfs:domain system:SoftwareComponent ; rdfs:range fs:SecurityMechanism ; rdfs:label "Implements Mechanism".
+fs:mechanismProtects rdf:type owl:ObjectProperty ; rdfs:domain fs:SecurityMechanism ; rdfs:range owl:Thing ; rdfs:label "Mechanism Protects"; rdfs:comment "Links mechanism to the component, endpoint, or data it secures.".
+fs:enforcesSecurityPolicy rdf:type owl:ObjectProperty ; rdfs:domain fs:SecurityMechanism ; rdfs:range fs:SecurityPolicy ; rdfs:label "Enforces Security Policy".
+
+fs:authenticationProvidedBy rdf:type owl:ObjectProperty ; rdfs:domain users:SystemUser ; rdfs:range fs:AuthenticationMechanism ; rdfs:label "Authentication Provided By".
+fs:authorizationManagedBy rdf:type owl:ObjectProperty ; rdfs:domain fs:Resource ; rdfs:range fs:AuthorizationMechanism ; rdfs:label "Authorization Managed By".
+
+# Linking Roles, Permissions, and Resources for RBAC
+fs:roleIsAssignedTo rdf:type owl:ObjectProperty ; rdfs:domain users:SystemUser ; rdfs:range users:SystemUser ; # Reusing SystemUser Roles like FleetManager etc
+    rdfs:label "User Has Role".
+fs:roleGrantsPermission rdf:type owl:ObjectProperty ; rdfs:domain users:SystemUser ; rdfs:range fs:Permission ; rdfs:label "Role Grants Permission".
+fs:permissionAppliesToResource rdf:type owl:ObjectProperty ; rdfs:domain fs:Permission ; rdfs:range fs:Resource ; rdfs:label "Permission Applies To Resource". # Resource needs to be defined better perhaps using URI or linking to system classes
+
+fs:dataEncryptedBy rdf:type owl:ObjectProperty ; rdfs:domain rdf:Property ; rdfs:range fs:EncryptionMechanism ; rdfs:label "Data Encrypted By"; rdfs:comment "Which specific data properties are encrypted.".
+fs:communicationSecuredBy rdf:type owl:ObjectProperty ; rdfs:domain system:APIService ; rdfs:range fs:EncryptionInTransit ; rdfs:label "Communication Secured By".
+
+fs:logsSecurityEventsTo rdf:type owl:ObjectProperty ; rdfs:domain fs:SecurityMechanism ; rdfs:range fs:LoggingMechanism ; rdfs:label "Logs Security Events To".
+
+fs:validationMechanismChecksInputTo rdf:type owl:ObjectProperty ; rdfs:domain fs:InputValidationMechanism ; rdfs:range system:APIEndpoint ; rdfs:label "Validation Mechanism Checks Input To".

@@ -1,0 +1,59 @@
+@prefix :      <http://example.org/fleetsight#> .
+@prefix fs:    <http://example.org/fleetsight#> .
+@prefix owl:   <http://www.w3.org/2002/07/owl#> .
+@prefix rdf:   <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs:  <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd:   <http://www.w3.org/2001/XMLSchema#> .
+@prefix core:  <http://example.org/fleetsight-core-entities#> .
+@prefix anomaly: <http://example.org/fleetsight-anomaly#> .
+
+# Ontology Declaration
+<http://example.org/fleetsight-users>
+    rdf:type owl:Ontology ;
+    owl:imports <http://example.org/fleetsight-core-entities>,
+                <http://example.org/fleetsight-anomaly> ;
+    rdfs:label "FleetSight Users Ontology" ;
+    rdfs:comment "Defines user roles and their relationship to core entities and anomalies." .
+
+# --- Classes ---
+
+fs:SystemUser
+    rdf:type owl:Class ; rdfs:label "System User" .
+fs:FleetManager
+    rdf:type owl:Class ; rdfs:subClassOf fs:SystemUser ; rdfs:label "Fleet Manager" ; rdfs:comment "Primary user interacting with the anomaly dashboard.".
+fs:Administrator
+    rdf:type owl:Class ; rdfs:subClassOf fs:SystemUser ; rdfs:label "Administrator" ; rdfs:comment "User responsible for system configuration and maintenance.".
+
+# --- Data Properties ---
+
+fs:userID
+    rdf:type owl:DatatypeProperty ; rdfs:domain fs:SystemUser ; rdfs:range xsd:string ; rdfs:label "User ID".
+fs:userEmail
+    rdf:type owl:DatatypeProperty ; rdfs:domain fs:SystemUser ; rdfs:range xsd:string ; rdfs:label "User Email".
+fs:userName
+    rdf:type owl:DatatypeProperty ; rdfs:domain fs:SystemUser ; rdfs:range xsd:string ; rdfs:label "User Name".
+fs:lastLoginTimestamp
+    rdf:type owl:DatatypeProperty ; rdfs:domain fs:SystemUser ; rdfs:range xsd:dateTime ; rdfs:label "Last Login Timestamp".
+
+# --- Object Properties ---
+
+fs:managesVehicle
+    rdf:type owl:ObjectProperty ; rdfs:domain fs:FleetManager ; rdfs:range core:Vehicle ; rdfs:label "Manages Vehicle".
+fs:managesDriver
+    rdf:type owl:ObjectProperty ; rdfs:domain fs:FleetManager ; rdfs:range core:Driver ; rdfs:label "Manages Driver".
+
+fs:reviewsAnomaly
+    rdf:type owl:ObjectProperty ;
+    rdfs:domain fs:FleetManager ;
+    rdfs:range anomaly:TransactionAnomaly ;
+    rdfs:label "Reviews Anomaly" ;
+    rdfs:comment "Indicates that a Fleet Manager has provided feedback for an anomaly.";
+    owl:inverseOf fs:reviewedByManager .
+
+fs:reviewedByManager
+    rdf:type owl:ObjectProperty ;
+    rdfs:domain anomaly:TransactionAnomaly ;
+    rdfs:range fs:FleetManager ;
+    rdfs:label "Reviewed By Manager";
+    # rdf:type owl:FunctionalProperty ; # Removed - history might involve multiple reviews/escalations? Revisit if needed.
+    owl:inverseOf fs:reviewsAnomaly .
