@@ -9,6 +9,7 @@ from datetime import datetime
 from decimal import Decimal
 from typing import Optional, List
 from uuid import UUID
+from enum import Enum
 
 from pydantic import BaseModel, Field, validator, confloat
 
@@ -29,6 +30,118 @@ class Entity(BaseModel):
                 "class": "Entity"
             }
         }
+
+class VehicleStatus(str, Enum):
+    """Vehicle status as defined in ontology."""
+    ACTIVE = "ACTIVE"
+    MAINTENANCE = "MAINTENANCE"
+    OUT_OF_SERVICE = "OUT_OF_SERVICE"
+    AVAILABLE = "AVAILABLE"
+    ASSIGNED = "ASSIGNED"
+
+
+class DriverStatus(str, Enum):
+    """Driver status as defined in ontology."""
+    ACTIVE = "ACTIVE"
+    INACTIVE = "INACTIVE"
+    SUSPENDED = "SUSPENDED"
+    ON_LEAVE = "ON_LEAVE"
+    AVAILABLE = "AVAILABLE"
+    ASSIGNED = "ASSIGNED"
+
+
+class TransactionType(str, Enum):
+    """Transaction types as defined in ontology."""
+    FUEL = "FUEL"
+    MAINTENANCE = "MAINTENANCE"
+    REPAIR = "REPAIR"
+    TOLL = "TOLL"
+    PARKING = "PARKING"
+    OTHER = "OTHER"
+
+
+class Vehicle(Entity):
+    """
+    [OWL: fleetsight-core-entities.ttl#Vehicle]
+    Represents a vehicle within the managed fleet.
+    """
+    vehicle_id: str = Field(
+        ..., 
+        description="Unique identifier for the vehicle [OWL: core:vehicleID]"
+    )
+    make: str = Field(
+        ..., 
+        description="Manufacturer of the vehicle [OWL: core:vehicleMake]"
+    )
+    model: str = Field(
+        ..., 
+        description="Model name of the vehicle [OWL: core:vehicleModel]"
+    )
+    year: int = Field(
+        ..., 
+        ge=1900,
+        le=2100,
+        description="Model year of the vehicle [OWL: core:vehicleYear]"
+    )
+    vehicle_type: str = Field(
+        ..., 
+        description="General classification of the vehicle [OWL: core:vehicleType]"
+    )
+    fuel_capacity: Decimal = Field(
+        ..., 
+        gt=0,
+        description="Vehicle's fuel tank capacity [OWL: core:fuelCapacity]"
+    )
+    fuel_capacity_unit: str = Field(
+        ..., 
+        description="Unit for fuel capacity [OWL: core:fuelCapacityUnit]"
+    )
+    status: Optional[str] = VehicleStatus.AVAILABLE
+    current_driver_id: Optional[str] = None
+    fleet_id: Optional[str] = None
+
+    class Config:
+        json_schema_extra = {
+            "owl_mapping": {
+                "source": "owl/fleetsight-core-entities.ttl",
+                "class": "Vehicle"
+            }
+        }
+
+
+class Driver(Entity):
+    """
+    [OWL: fleetsight-core-entities.ttl#Driver]
+    Represents a driver associated with the fleet.
+    """
+    driver_id: str = Field(
+        ..., 
+        description="Unique identifier for the driver [OWL: core:driverID]"
+    )
+    name: str = Field(
+        ..., 
+        description="Full name of the driver [OWL: core:driverName]"
+    )
+    license_number: Optional[str] = Field(
+        None,
+        description="Driver's license number (PII - Handle securely) [OWL: core:driverLicenseNumber]"
+    )
+    assigned_vehicle_ids: Optional[List[str]] = Field(
+        None,
+        description="IDs of vehicles assigned to this driver [OWL: core:assignedVehicle]"
+    )
+    status: Optional[str] = DriverStatus.AVAILABLE
+    assigned_vehicle_id: Optional[str] = None
+    fleet_id: Optional[str] = None
+
+    class Config:
+        json_schema_extra = {
+            "owl_mapping": {
+                "source": "owl/fleetsight-core-entities.ttl",
+                "class": "Driver"
+            }
+        }
+
 
 class FleetTransaction(Entity):
     """
@@ -80,6 +193,23 @@ class FleetTransaction(Entity):
         None,
         description="Reference to the driver who performed the transaction [OWL: core:transactionPerformedBy]"
     )
+    transaction_type: str = Field(
+        ...,
+        description="Type of the transaction [OWL: core:transactionType]"
+    )
+    location: Optional[str] = Field(
+        None,
+        description="Location of the transaction [OWL: core:transactionLocation]"
+    )
+    odometer_reading: Optional[int] = Field(
+        None,
+        gt=0,
+        description="Vehicle odometer reading at time of transaction [OWL: core:odometerReading]"
+    )
+    notes: Optional[str] = Field(
+        None,
+        description="Additional notes about the transaction [OWL: core:transactionNotes]"
+    )
 
     @validator('currency')
     def validate_currency(cls, v):
@@ -123,11 +253,6 @@ class FuelTransaction(FleetTransaction):
         ...,
         description="Unit for the fuel volume [OWL: core:fuelVolumeUnit]"
     )
-    odometer_reading: Optional[int] = Field(
-        None,
-        gt=0,
-        description="Vehicle odometer reading at time of transaction [OWL: core:odometerReading]"
-    )
 
     class Config:
         json_schema_extra = {
@@ -147,93 +272,11 @@ class MaintenanceTransaction(FleetTransaction):
         ...,
         description="Description of maintenance performed [OWL: core:maintenanceType]"
     )
-    odometer_reading: Optional[int] = Field(
-        None,
-        gt=0,
-        description="Vehicle odometer reading at time of maintenance [OWL: core:odometerReading]"
-    )
 
     class Config:
         json_schema_extra = {
             "owl_mapping": {
                 "source": "owl/fleetsight-core-entities.ttl",
                 "class": "MaintenanceTransaction"
-            }
-        }
-
-
-class Vehicle(Entity):
-    """
-    [OWL: fleetsight-core-entities.ttl#Vehicle]
-    Represents a vehicle within the managed fleet.
-    """
-    vehicle_id: str = Field(
-        ..., 
-        description="Unique identifier for the vehicle [OWL: core:vehicleID]"
-    )
-    make: str = Field(
-        ..., 
-        description="Manufacturer of the vehicle [OWL: core:vehicleMake]"
-    )
-    model: str = Field(
-        ..., 
-        description="Model name of the vehicle [OWL: core:vehicleModel]"
-    )
-    year: int = Field(
-        ..., 
-        ge=1900,
-        le=2100,
-        description="Model year of the vehicle [OWL: core:vehicleYear]"
-    )
-    vehicle_type: str = Field(
-        ..., 
-        description="General classification of the vehicle [OWL: core:vehicleType]"
-    )
-    fuel_capacity: Decimal = Field(
-        ..., 
-        gt=0,
-        description="Vehicle's fuel tank capacity [OWL: core:fuelCapacity]"
-    )
-    fuel_capacity_unit: str = Field(
-        ..., 
-        description="Unit for fuel capacity [OWL: core:fuelCapacityUnit]"
-    )
-
-    class Config:
-        json_schema_extra = {
-            "owl_mapping": {
-                "source": "owl/fleetsight-core-entities.ttl",
-                "class": "Vehicle"
-            }
-        }
-
-
-class Driver(Entity):
-    """
-    [OWL: fleetsight-core-entities.ttl#Driver]
-    Represents a driver associated with the fleet.
-    """
-    driver_id: str = Field(
-        ..., 
-        description="Unique identifier for the driver [OWL: core:driverID]"
-    )
-    name: str = Field(
-        ..., 
-        description="Full name of the driver [OWL: core:driverName]"
-    )
-    license_number: Optional[str] = Field(
-        None,
-        description="Driver's license number (PII - Handle securely) [OWL: core:driverLicenseNumber]"
-    )
-    assigned_vehicle_ids: Optional[List[str]] = Field(
-        None,
-        description="IDs of vehicles assigned to this driver [OWL: core:assignedVehicle]"
-    )
-
-    class Config:
-        json_schema_extra = {
-            "owl_mapping": {
-                "source": "owl/fleetsight-core-entities.ttl",
-                "class": "Driver"
             }
         } 

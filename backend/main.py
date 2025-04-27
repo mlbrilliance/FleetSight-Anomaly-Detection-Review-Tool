@@ -8,7 +8,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 
-from backend.api.routes import vehicles
+from backend.api.router import api_router
 
 
 @asynccontextmanager
@@ -42,8 +42,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Include routers
-app.include_router(vehicles.router, prefix="/api")
+# Include the API router that contains all route modules
+app.include_router(api_router)
 
 
 @app.get("/")

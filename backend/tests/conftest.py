@@ -1,55 +1,48 @@
 """
-Test configuration and fixtures.
+Pytest configuration and shared fixtures for backend tests.
+[OWL: fleetsight-core-entities.ttl]
 
-This module provides fixtures and configuration for tests.
+This module contains common fixtures and utilities used across test modules.
 """
 
-import asyncio
-import pytest
-from typing import AsyncGenerator, Dict, Generator
-from unittest.mock import patch, MagicMock, AsyncMock
 import os
+import sys
+import pytest
+from datetime import datetime
 from uuid import uuid4
+from typing import Any, Dict, Optional, List
 
-from fastapi.testclient import TestClient
-
-from backend.main import app
-from backend.models.user import User
-
-# Set mock environment variables for testing
-os.environ["SUPABASE_URL"] = "https://example.supabase.co"
-os.environ["SUPABASE_KEY"] = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.mock-key"
-os.environ["SECRET_KEY"] = "test_secret_key_for_testing_only"
+# Add the project root to path for imports
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
 
 
 @pytest.fixture
-def test_app():
-    """Create a test application with mocked dependencies."""
-    # Mock Supabase client
-    mock_supabase = MagicMock()
+def mock_uuid():
+    """Return a consistent UUID for testing."""
+    return uuid4()
+
+
+@pytest.fixture
+def mock_datetime():
+    """Return a consistent datetime for testing."""
+    return datetime(2023, 5, 15, 10, 0, 0)
+
+
+class MockResponse:
+    """Mock HTTP response for testing."""
     
-    # Configure the mock to return appropriate responses
-    mock_table = MagicMock()
-    mock_table.select.return_value = mock_table
-    mock_table.eq.return_value = mock_table
-    mock_table.execute.return_value = MagicMock(data=[])
+    def __init__(self, json_data: Any, status_code: int = 200, headers: Optional[Dict[str, str]] = None):
+        self.json_data = json_data
+        self.status_code = status_code
+        self.headers = headers or {}
+        self.text = str(json_data)
     
-    mock_supabase.table.return_value = mock_table
+    def json(self):
+        """Return JSON data."""
+        return self.json_data
     
-    # Mock auth
-    mock_supabase.auth = MagicMock()
-    
-    # Create a valid UUID string
-    test_uuid = str(uuid4())
-    
-    with patch("backend.db.supabase_client.get_supabase_client", return_value=mock_supabase):
-        with patch("backend.api.auth.get_current_user", return_value=User(
-            id=test_uuid,
-            email="test@example.com",
-            full_name="Test User",
-            role="admin",
-            is_active=True,
-            created_at="2023-01-01T00:00:00Z"
-        )):
-            client = TestClient(app)
-            yield client 
+    def raise_for_status(self):
+        """Raise an exception if status code is 4xx or 5xx."""
+        if 400 <= self.status_code < 600:
+            from httpx import HTTPStatusError
+            raise HTTPStatusError(f"HTTP Error: {self.status_code}", request=None, response=self) 

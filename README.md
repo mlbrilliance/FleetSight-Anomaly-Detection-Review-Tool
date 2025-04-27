@@ -1,87 +1,66 @@
-# FleetSight - Fleet Management and Anomaly Detection Platform
+# FleetSight
 
-FleetSight is a comprehensive fleet management platform with integrated anomaly detection capabilities. The system helps fleet managers monitor vehicles, track drivers, manage transactions, and identify unusual patterns or issues.
+FleetSight is a modern fleet management system designed to help organizations monitor and manage their vehicle fleets efficiently.
 
 ## Features
 
-- **Vehicle Management**: Track and manage your entire fleet of vehicles
-- **Driver Management**: Maintain driver information, assignments, and status
-- **Transaction Tracking**: Record and analyze fuel and maintenance transactions
-- **Anomaly Detection**: Identify unusual patterns in fleet operations
-- **Data Visualization**: View comprehensive reports and dashboards
+- Vehicle management (tracking, maintenance, status)
+- Driver management
+- Trip and route tracking
+- Fuel consumption monitoring
+- Maintenance scheduling
+- Reporting and analytics
+- User authentication and authorization
 
 ## Project Structure
 
 ```
 fleetsight/
-├── backend/              # Backend API and business logic
-│   ├── api/              # API routes and endpoints
-│   ├── db/               # Database models and interface
-│   │   ├── interface.py  # Abstract DB interface
-│   │   └── mock_db.py    # Mock implementation for testing
-│   └── tests/            # Backend tests
-│       ├── test_mock_db.py
-│       └── ...
-├── frontend/             # Frontend application (to be implemented)
-├── shared_models/        # Shared Pydantic models
-│   └── models.py         # Core entity models
-└── owl/                  # Ontology definitions
+├── backend/               # FastAPI backend
+│   ├── api/               # API routes
+│   ├── models/            # Pydantic models
+│   ├── services/          # Business logic
+│   └── main.py            # Application entry point
+└── frontend/              # Frontend application (future)
 ```
 
 ## Getting Started
 
 ### Prerequisites
 
-- Python 3.11+
-- Git
+- Python 3.9+
+- pip
 
-### Setup and Installation
+### Installation
 
 1. Clone the repository:
-   ```bash
-   git clone https://github.com/mlbrilliance/FleetSight-Anomaly-Detection-Review-Tool.git
-   cd FleetSight-Anomaly-Detection-Review-Tool
-   ```
-
-2. Install dependencies:
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-3. Run tests:
-   ```bash
-   python -m pytest
-   ```
-
-### Development with GitHub Codespaces
-
-1. Navigate to the repository on GitHub
-2. Click the "Code" button and select the "Codespaces" tab
-3. Click "Create codespace on main"
-4. The development environment will set up automatically with all required dependencies
-
-## Testing
-
-Run the test suite:
-
 ```bash
-python -m pytest
+git clone https://github.com/yourusername/fleetsight.git
+cd fleetsight
 ```
 
-Or run specific test files:
-
+2. Install dependencies:
 ```bash
-python -m pytest backend/tests/test_mock_db.py
+pip install -r requirements.txt
+```
+
+3. Run the development server:
+```bash
+uvicorn backend.main:app --reload
+```
+
+4. Open your browser and navigate to:
+```
+http://localhost:8000/docs
+```
+
+## API Documentation
+
+Once the server is running, you can access the OpenAPI documentation at:
+```
+http://localhost:8000/docs
 ```
 
 ## License
 
-[MIT](LICENSE)
-
-## Contributing
-
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add some amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request 
+[MIT](LICENSE) 
